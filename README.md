@@ -89,4 +89,3 @@ Facilitar el **acceso rápido y seguro** a información médica verificada para 
 
 ### 📄 Licencia
 Este proyecto es de uso académico en el marco de la **Facultad de Medicina UCN**.
-"""
