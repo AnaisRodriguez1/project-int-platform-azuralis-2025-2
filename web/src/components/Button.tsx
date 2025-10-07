@@ -2,7 +2,7 @@ import React from "react";
 
 //Esto es para definir los tipos de variables y tamaños
 //Evitamos errores de tipeo, o es primary o es secundary
-type ButtonVariant = "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary" | "ghost";
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 //Definimos las props que va a recibir el boton
@@ -31,6 +31,7 @@ const Button : React.FC<ButtonProps> = ({
     const variantStyles = {
         primary : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
         secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400',
+        ghost: 'bg-transparent text-blue-600 hover:bg-blue-100 focus:ring-blue-500',
     };
 
     const sizeStyles = {
