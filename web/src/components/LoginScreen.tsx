@@ -101,6 +101,7 @@ export function LoginScreen() {
                                 id="password"
                                 type="password"
                                 value={password}
+                                placeholder="••••••••"
                                 onChange={(e) => setPassword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                             />
