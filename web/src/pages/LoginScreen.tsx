@@ -1,31 +1,15 @@
-import type { UserRole } from "@/types/medical";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { getMockUsers } from "@/services/mockApi";
-import { CancerRibbon } from "./CancerRibbon";
+import { CancerRibbon } from "../components/CancerRibbon";
 import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Alert, AlertDescription } from "./ui/alert";
-
-// Helper function para obtener la ruta del dashboard según el role
-const getDashboardRoute = (role: UserRole): string => {
-    switch (role) {
-        case 'doctor':
-            return '/dashboard-doctor';
-        case 'patient':
-            return '/dashboard-patient';
-        case 'guardian':
-            return '/dashboard-guardian';
-        case 'nurse':
-            return '/dashboard-nurse';
-        default:
-            return '/';
-    }
-};
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { getDashboardRoute } from "@/common/helpers/GetDashboardRoute";
 
 export function LoginScreen() {
     const navigate = useNavigate();
@@ -124,6 +108,19 @@ export function LoginScreen() {
                                     ? "Iniciando sesión..."
                                     : "Iniciar Sesión"}
                             </Button>
+                        </div>
+                        {/* Enlace a registro */}
+                        <div className="text-center pt-4">
+                            <p className="text-sm text-gray-600">
+                                ¿No tienes cuenta?{" "}
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/register")}
+                                    className="text-[#fa8fb5] hover:text-[#dd6d94] font-medium hover:underline transition-colors"
+                                >
+                                    Regístrate aquí
+                                </button>
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

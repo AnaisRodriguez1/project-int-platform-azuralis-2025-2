@@ -9,7 +9,8 @@ export type CancerType =
   | 'prostate'
   | 'testicular'
   | 'renal'
-  | 'hepatic';
+  | 'hepatic'
+  | 'other'
 
 export interface EmergencyContact {
   name: string;
@@ -136,10 +137,11 @@ export interface AccessGrant {
 
 // --- Otras Interfaces y Constantes ---
 
-export interface RegistrationData {
+export interface RegisterFormData {
+  name: string;
   email: string;
   password: string;
-  name: string;
+  confirmPassword: string;
   role: UserRole;
 }
 
@@ -153,4 +155,5 @@ export const cancerColors: Record<CancerType, { color: string; name: string }> =
   testicular: { color: '#da70d6', name: 'Testicular' },
   renal: { color: '#ff8c00', name: 'Renal' },
   hepatic: { color: '#50c878', name: 'Hepático' },
+  other: { color: '#9333EA', name: 'Otro tipo' },
 };
