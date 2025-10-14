@@ -52,14 +52,25 @@ export interface PatientNote {
   authorName: string;
 }
 
+export type DocumentType = 
+  | 'examen'           // Exámenes de laboratorio, imagenología, biopsias
+  | 'cirugia'          // Documentos relacionados a cirugías
+  | 'quimioterapia'    // Protocolos, recetas y seguimiento de quimioterapia
+  | 'radioterapia'     // Documentos de radioterapia
+  | 'receta'           // Recetas médicas generales
+  | 'informe_medico'   // Informes y resúmenes médicos
+  | 'consentimiento'   // Consentimientos informados
+  | 'otro';            // Otros documentos
+
 export interface PatientDocument {
   id: string;
   title: string;
-  type: 'prescription' | 'test_result' | 'image' | 'other';
+  type: DocumentType;
   url: string;
   uploadDate: string;
   patientId: string;
   uploaderId: string;
+  description?: string; // Descripción opcional del documento
 }
 
 // --- Interfaces relacionadas al Usuario y Permisos ---
@@ -156,4 +167,30 @@ export const cancerColors: Record<CancerType, { color: string; name: string }> =
   renal: { color: '#ff8c00', name: 'Renal' },
   hepatic: { color: '#50c878', name: 'Hepático' },
   other: { color: '#9333EA', name: 'Otro tipo' },
+};
+
+export const getDocumentTypeLabel = (type: DocumentType) => {
+  switch (type) {
+    case 'examen': return 'Examen';
+    case 'cirugia': return 'Cirugía';
+    case 'quimioterapia': return 'Quimioterapia';
+    case 'radioterapia': return 'Radioterapia';
+    case 'receta': return 'Receta';
+    case 'informe_medico': return 'Informe Médico';
+    case 'consentimiento': return 'Consentimiento';
+    case 'otro': return 'Otro';
+  }
+};
+
+export const getDocumentTypeColor = (type: DocumentType) => {
+  switch (type) {
+    case 'examen': return 'bg-blue-100 text-blue-800';
+    case 'cirugia': return 'bg-red-100 text-red-800';
+    case 'quimioterapia': return 'bg-purple-100 text-purple-800';
+    case 'radioterapia': return 'bg-orange-100 text-orange-800';
+    case 'receta': return 'bg-green-100 text-green-800';
+    case 'informe_medico': return 'bg-indigo-100 text-indigo-800';
+    case 'consentimiento': return 'bg-yellow-100 text-yellow-800';
+    case 'otro': return 'bg-gray-100 text-gray-800';
+  }
 };

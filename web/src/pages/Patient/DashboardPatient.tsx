@@ -29,7 +29,7 @@ export function DashboardPatient() {
     const renderContent = () => {
         switch (activeTab) {
             case 'home':
-                return(<HomePatient />);
+                return(<HomePatient onTabChange={onTabChange} />);
             case 'notes':
                 return (<NotesPatient/>);
             case 'documents':

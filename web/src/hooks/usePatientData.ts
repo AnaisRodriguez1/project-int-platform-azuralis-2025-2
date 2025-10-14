@@ -1,7 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
 import { usePatientContext } from "@/context/PatientContext";
 import { cancerColors } from "@/types/medical";
-import type { CancerType } from "@/types/medical";
+import type { CancerType, PatientUser } from "@/types/medical";
+import { getPatientById } from "@/services/mockApi";
 
 interface PatientData {
   cancerType: CancerType;
@@ -14,11 +15,9 @@ interface PatientData {
  * Custom hook para obtener datos del paciente actual
  * 
  * Funciona de manera diferente según el rol del usuario:
- * - PACIENTE: Retorna sus propios datos
+ * - PACIENTE: Retorna sus propios datos desde mockApi
  * - GUARDIAN: Retorna datos del paciente seleccionado en PatientContext
  * - DOCTOR/NURSE: Retorna datos del paciente que están visualizando
- * 
- * TODO: Conectar con API real para obtener datos del backend
  */
 export function usePatientData(): PatientData {
   const { user } = useAuth();
@@ -30,11 +29,20 @@ export function usePatientData(): PatientData {
   let patientName: string;
 
   if (user?.role === 'patient') {
-    // Para paciente: usar sus propios datos
-    // TODO: Obtener desde user.cancerType cuando esté en el backend
-    patientId = user.id;
-    patientName = user.name;
-    cancerType = 'hepatic'; // Temporal - TODO: user.cancerType
+    // Para paciente: obtener datos reales desde mockApi
+    const patientUser = user as PatientUser;
+    const patientData = getPatientById(patientUser.patientId);
+    
+    if (patientData) {
+      patientId = patientData.id;
+      patientName = patientData.name;
+      cancerType = patientData.cancerType;
+    } else {
+      // Fallback si no se encuentra el paciente
+      patientId = patientUser.patientId;
+      patientName = user.name;
+      cancerType = 'other';
+    }
   } else if (user?.role === 'guardian' || user?.role === 'doctor' || user?.role === 'nurse') {
     // Para guardian/doctor/nurse: usar el paciente seleccionado del contexto
     if (!currentPatient) {

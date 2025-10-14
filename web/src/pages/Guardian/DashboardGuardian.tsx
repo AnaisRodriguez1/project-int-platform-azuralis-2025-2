@@ -1,24 +1,36 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { guardianTabs } from "@/common/config/navigationTabs";
 import { PatientSelector } from "@/components/PatientSelector";
 import { usePatientData } from "@/hooks/usePatientData";
-import type { CancerType } from "@/types/medical";
-
-// Mock de pacientes - TODO: Obtener desde API según guardianUser.patientIds
-const mockPatients = [
-  { patientId: '1', name: 'María González', cancerType: 'breast' as CancerType, relationship: 'Hija' },
-  { patientId: '2', name: 'Juan Pérez', cancerType: 'lung' as CancerType, relationship: 'Hijo' },
-];
+import { getPatientsByGuardian } from "@/services/mockApi";
+import type { GuardianUser } from "@/types/medical";
 
 export function DashboardGuardian() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('home');
     const { cancerColor, patientName, patientId } = usePatientData();
+
+    // Obtener pacientes reales desde mockApi
+    const mockPatients = useMemo(() => {
+        if (user?.role === 'guardian') {
+            const guardianUser = user as GuardianUser;
+            // Obtener pacientes a cargo del guardian
+            const assignedPatients = getPatientsByGuardian(guardianUser.id);
+            
+            // Mapear a formato esperado por PatientSelector
+            return assignedPatients.map(patient => ({
+                patientId: patient.id,
+                name: patient.name,
+                cancerType: patient.cancerType
+            }));
+        }
+        return [];
+    }, [user]);
 
     const handleLogout = () => {
         logout();

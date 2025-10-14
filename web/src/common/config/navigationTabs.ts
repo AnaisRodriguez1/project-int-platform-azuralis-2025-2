@@ -1,4 +1,4 @@
-import { Home, StickyNote, FolderOpen, Settings, Users, Calendar, FileText, Activity } from "lucide-react";
+import { Home, StickyNote, FolderOpen, Settings, Users, Calendar, Activity, ScanLine } from "lucide-react";
 import type { NavTab } from "@/components/BottomNavigation";
 
 // Tabs para Paciente
@@ -13,8 +13,7 @@ export const patientTabs: NavTab[] = [
 export const doctorTabs: NavTab[] = [
   { id: 'home', icon: Home, label: 'Inicio' },
   { id: 'patients', icon: Users, label: 'Pacientes' },
-  { id: 'appointments', icon: Calendar, label: 'Citas' },
-  { id: 'reports', icon: FileText, label: 'Reportes' },
+  { id: 'scanner', icon: ScanLine, label: 'Escáner' },
   { id: 'profile', icon: Settings, label: 'Perfil' }
 ];
 

@@ -1,7 +1,7 @@
 import { usePatientData } from "@/hooks/usePatientData";
 
 export function HomeDoctor() {
-    const { cancerColor, patientName, patientId } = usePatientData();
+    const {patientName} = usePatientData();
   return (
     <div className="mt-8">
       <h2 className="text-xl font-bold text-gray-900 mb-4">

@@ -1,19 +1,12 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { nurseTabs } from "@/common/config/navigationTabs";
 import { PatientSelector } from "@/components/PatientSelector";
 import { usePatientData } from "@/hooks/usePatientData";
-import type { CancerType } from "@/types/medical";
-
-// Mock de pacientes asignados - TODO: Obtener desde API según nurseUser.scanHistory o pacientes asignados
-const mockPatients = [
-  { patientId: '1', name: 'María González', cancerType: 'breast' as CancerType },
-  { patientId: '2', name: 'Juan Pérez', cancerType: 'lung' as CancerType },
-  { patientId: '3', name: 'Ana Rodríguez', cancerType: 'colon' as CancerType },
-];
+import { getMockPatients } from "@/services/mockApi";
 
 export function DashboardNurse() {
     const { user, logout } = useAuth();
@@ -21,6 +14,22 @@ export function DashboardNurse() {
     const [activeTab, setActiveTab] = useState('home');
     const { cancerColor, patientName, patientId } = usePatientData();
     const nurseColor = '#00B4D8'; // Color cyan para enfermería
+
+    // Obtener todos los pacientes desde mockApi
+    // Las enfermeras pueden ver todos los pacientes del hospital
+    const mockPatients = useMemo(() => {
+        if (user?.role === 'nurse') {
+            const allPatients = getMockPatients();
+            
+            // Mapear a formato esperado por PatientSelector
+            return allPatients.map(patient => ({
+                patientId: patient.id,
+                name: patient.name,
+                cancerType: patient.cancerType
+            }));
+        }
+        return [];
+    }, [user]);
 
     const handleLogout = () => {
         logout();
