@@ -169,6 +169,9 @@ export const cancerColors: Record<CancerType, { color: string; name: string }> =
   other: { color: '#9333EA', name: 'Otro tipo' },
 };
 
+export const doctorColor = '#3B82F6';
+export const nurseColor = '#00B4D8';
+
 export const getDocumentTypeLabel = (type: DocumentType) => {
   switch (type) {
     case 'examen': return 'Examen';
@@ -194,3 +197,4 @@ export const getDocumentTypeColor = (type: DocumentType) => {
     case 'otro': return 'bg-gray-100 text-gray-800';
   }
 };
+

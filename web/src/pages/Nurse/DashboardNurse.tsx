@@ -7,13 +7,13 @@ import { nurseTabs } from "@/common/config/navigationTabs";
 import { PatientSelector } from "@/components/PatientSelector";
 import { usePatientData } from "@/hooks/usePatientData";
 import { getMockPatients } from "@/services/mockApi";
+import { nurseColor } from "@/types/medical";
 
 export function DashboardNurse() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('home');
     const { cancerColor, patientName, patientId } = usePatientData();
-    const nurseColor = '#00B4D8'; // Color cyan para enfermería
 
     // Obtener todos los pacientes desde mockApi
     // Las enfermeras pueden ver todos los pacientes del hospital
