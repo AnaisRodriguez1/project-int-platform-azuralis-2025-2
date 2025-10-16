@@ -11,7 +11,11 @@ import { Plus, Calendar, Edit3, Trash2, StickyNote } from 'lucide-react';
 import { getNotesByPatientId, createNote, updateNote as updateNoteApi, deleteNote as deleteNoteApi } from '@/services/mockApi';
 import type { PatientNote, PatientUser } from '@/types/medical';
 
-export function NotesPatient() {
+interface NotesPatientProps {
+  hideHeader?: boolean; // Prop para ocultar el header cuando se usa en un wrapper
+}
+
+export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
   const { user } = useAuth();
   const { cancerColor } = usePatientData();
   const [notes, setNotes] = useState<PatientNote[]>([]);
@@ -165,15 +169,17 @@ export function NotesPatient() {
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Mis Notas</h2>
-          <p className="text-gray-600">Registra tus síntomas y observaciones</p>
-        </div>
+        {!hideHeader && (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Mis Notas</h2>
+            <p className="text-gray-600">Registra tus síntomas y observaciones</p>
+          </div>
+        )}
         <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
             <Button
               style={{ backgroundColor: cancerColor.color }}
-              className="text-white"
+              className={hideHeader ? 'text-white ml-auto' : 'text-white'}
               onClick={() => setIsDialogOpen(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -228,9 +234,9 @@ export function NotesPatient() {
         <Card className="text-center py-12">
           <CardContent>
             <StickyNote className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No tienes notas aún</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No existen notas aún</h3>
             <p className="text-gray-600 mb-6">
-              Comienza a registrar tus síntomas, estado de ánimo y observaciones
+              Comienza a registrar los síntomas, estado de ánimo y observaciones
             </p>
             <Button 
               onClick={() => setIsDialogOpen(true)}
@@ -238,7 +244,7 @@ export function NotesPatient() {
               className="text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Crear mi primera nota
+              Crear primera nota
             </Button>
           </CardContent>
         </Card>

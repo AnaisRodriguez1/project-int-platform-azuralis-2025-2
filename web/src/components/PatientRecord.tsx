@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Phone,
   AlertTriangle,
-  FileText,
   Calendar,
   User,
   Pill,
@@ -239,9 +238,23 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                 className="p-3 rounded-lg"
                 style={{ backgroundColor: cancerColor.color + "20" }}
               >
-                <p className="text-sm">
-                  <strong>Médico tratante:</strong> {patient.assignedDoctor}
-                </p>
+                <p className="text-sm font-semibold mb-2">Equipo de Cuidados:</p>
+                <div className="space-y-2">
+                  {patient.careTeam.map((member, index) => (
+                    <div key={index} className="flex items-center space-x-2 text-sm">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: cancerColor.color }}
+                      ></div>
+                      <span className="font-medium">{member.name}</span>
+                      <span className="text-gray-600">
+                        - {member.role === 'oncologo_principal' ? 'Oncólogo Principal' : 
+                           member.role === 'enfermera_jefe' ? 'Enfermera Jefe' : 
+                           member.role}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -269,25 +282,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
         </div>
       </div>
 
-      {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-        <div className="max-w-4xl mx-auto flex space-x-4">
-          <Button
-            onClick={() => alert("Funcionalidad de actualización próximamente")}
-            className="flex-1"
-            style={{ backgroundColor: cancerColor.color }}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Actualizar Ficha
-          </Button>
-          <Button variant="outline" className="flex-1">
-            <FileText className="w-4 h-4 mr-2" />
-            Ver Documentos
-          </Button>
-        </div>
-      </div>
-
-      {/* Add some bottom padding to avoid fixed button overlap */}
+      {/* Add some bottom padding to avoid fixed navigation overlap */}
       <div className="h-20"></div>
     </div>
   );

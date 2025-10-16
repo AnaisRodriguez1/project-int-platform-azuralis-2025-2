@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { getMockUsers } from "@/services/mockApi";
 import { CancerRibbon } from "../components/CancerRibbon";
 import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -10,6 +9,7 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { getDashboardRoute } from "@/common/helpers/GetDashboardRoute";
+import { getLoginCredentials } from "@/services/mockApi";
 
 export function LoginScreen() {
     const navigate = useNavigate();
@@ -130,15 +130,15 @@ export function LoginScreen() {
                     <AlertDescription>
                         <p className="font-semibold text-blue-900 mb-2">👥 Usuarios de prueba:</p>
                         <div className="space-y-1 text-xs text-blue-800">
-                            {getMockUsers().map((user) => (
-                                <div key={user.id} className="flex justify-between">
-                                    <span className="font-medium">{user.role}:</span>
-                                    <span>{user.email}</span>
+                            {getLoginCredentials().map((cred) => (
+                                <div key={cred.email} className="flex justify-between">
+                                    <span className="font-medium">{cred.role}:</span>
+                                    <span>{cred.email}</span>
                                 </div>
                             ))}
                         </div>
                         <p className="mt-2 text-xs text-blue-700 italic">
-                            💡 Contraseña: cualquiera funciona
+                            💡 Contraseña: {getLoginCredentials()[0]?.password}
                         </p>
                     </AlertDescription>
                 </Alert>

@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, Flashlight, ArrowLeft } from "lucide-react";
+import { Camera, ArrowLeft } from "lucide-react";
 import type { Patient } from "@/types/medical";
 import { mockApiService } from "@/services/mockApi";
 import { useAuth } from "@/context/AuthContext";
 import { CancerRibbon } from "./CancerRibbon";
 import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
 
-interface DoctorScannerProps {
+interface ScannerProps {
   onPatientFound: (patient: Patient) => void;
   onBack: () => void;
 }
 
-export function DoctorScanner({ onPatientFound, onBack }: DoctorScannerProps) {
+export function DoctorScanner({ onPatientFound, onBack }: ScannerProps) {
   const { user } = useAuth();
-  const [isFlashOn, setIsFlashOn] = useState(false);
   const [isScanning, setIsScanning] = useState(true);
 
   const handleMockScan = async () => {
@@ -25,8 +24,8 @@ export function DoctorScanner({ onPatientFound, onBack }: DoctorScannerProps) {
 
     setTimeout(async () => {
       try {
-        // Simular escaneo del primer paciente disponible (María González - p001)
-        const result = await mockApiService.scanPatientQR(user.id, "p001");
+        // Simular escaneo del primer paciente disponible (Sofía Ramírez - pat-001)
+        const result = await mockApiService.scanPatientQR(user.id, "pat-001");
         onPatientFound(result.patient);
       } catch (error) {
         console.error("Error al escanear:", error);
@@ -53,7 +52,7 @@ export function DoctorScanner({ onPatientFound, onBack }: DoctorScannerProps) {
           {/* LOGOS */}
           <div className="flex items-center justify-center space-x-3">
             <CancerRibbon className="text-[#ff6299]" size="lg" />
-            <LogoUniversidad className="w-8 h-8 " />
+            <LogoUniversidad className="w-8 h-8" style={{ fill: '#ff6299' }} />
           </div>
         </div>
       </div>
@@ -91,10 +90,10 @@ export function DoctorScanner({ onPatientFound, onBack }: DoctorScannerProps) {
           {/* Instructions */}
           <div className="text-center mt-8 space-y-2">
             <p className="text-white text-lg font-medium">
-              Escanee el código QR del paciente
+              Escanee el código QR del paciente.
             </p>
             <p className="text-gray-300 text-sm">
-              Mantenga el código dentro del marco
+              Mantenga el código dentro del marco.
             </p>
           </div>
         </div>
@@ -103,19 +102,6 @@ export function DoctorScanner({ onPatientFound, onBack }: DoctorScannerProps) {
       {/* Bottom Controls */}
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-black/50 backdrop-blur-sm">
         <div className="flex items-center justify-center space-x-8">
-          {/* Flash Toggle */}
-          <Button
-            variant="ghost"
-            size="lg"
-            onClick={() => setIsFlashOn(!isFlashOn)}
-            className={`text-white hover:bg-white/20 ${
-              isFlashOn ? "bg-white/20" : ""
-            }`}
-          >
-            <Flashlight
-              className={`w-6 h-6 ${isFlashOn ? "fill-current" : ""}`}
-            />
-          </Button>
 
           {/* Mock Scan Button (for demo purposes) */}
           <Button

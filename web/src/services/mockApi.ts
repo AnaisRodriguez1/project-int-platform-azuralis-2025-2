@@ -7,674 +7,635 @@ import type {
     NurseUser,
     PatientNote,
     PatientDocument
-} from "@/types/medical";
+} from '@/types/medical.ts';
 
 // ============================================
-// PACIENTES DE PRUEBA (Datos médicos completos)
+// USUARIOS DE EJEMPLO - USANDO MAPS PARA MEJOR PERFORMANCE
 // ============================================
-export const MOCK_PATIENTS: Patient[] = [
+
+// Datos raw para exportar como arrays (para compatibilidad)
+const DOCTORS_DATA: DoctorUser[] = [
     {
-        id: "p001",
-        name: "María González López",
+        id: 'doc-001',
+        name: 'Dr. Carlos Mendoza',
+        rut: '12345678-9',
+        email: 'carlos.mendoza@hospital.cl',
+        role: 'doctor',
+        specialization: 'Oncología',
+        license: 'D-123456'
+    },
+    {
+        id: 'doc-002',
+        name: 'Dra. María González',
+        rut: '23456789-0',
+        email: 'maria.gonzalez@hospital.cl',
+        role: 'doctor',
+        specialization: 'Hematología',
+        license: 'D-234567'
+    }
+];
+
+const NURSES_DATA: NurseUser[] = [
+    {
+        id: 'nurse-001',
+        name: 'Enfermera Ana Pérez',
+        rut: '34567890-1',
+        email: 'ana.perez@hospital.cl',
+        role: 'nurse',
+        department: 'Oncología',
+        license: 'N-345678'
+    },
+    {
+        id: 'nurse-002',
+        name: 'Enfermero José Silva',
+        rut: '45678901-2',
+        email: 'jose.silva@hospital.cl',
+        role: 'nurse',
+        department: 'Urgencias',
+        license: 'N-456789'
+    }
+];
+
+const PATIENT_USERS_DATA: PatientUser[] = [
+    {
+        id: 'user-pat-001',
+        name: 'Sofía Ramírez',
+        rut: '56789012-3',
+        email: 'sofia.ramirez@email.cl',
+        role: 'patient',
+        patientId: 'pat-001'
+    },
+    {
+        id: 'user-pat-002',
+        name: 'Pedro Flores',
+        rut: '67890123-4',
+        email: 'pedro.flores@email.cl',
+        role: 'patient',
+        patientId: 'pat-002'
+    }
+];
+
+const GUARDIANS_DATA: GuardianUser[] = [
+    {
+        id: 'guard-001',
+        name: 'Laura Ramírez',
+        rut: '78901234-5',
+        email: 'laura.ramirez@email.cl',
+        role: 'guardian',
+        patientIds: ['pat-001']
+    },
+    {
+        id: 'guard-002',
+        name: 'Carmen Flores',
+        rut: '89012345-6',
+        email: 'carmen.flores@email.cl',
+        role: 'guardian',
+        patientIds: ['pat-002']
+    }
+];
+
+// Exportar arrays para compatibilidad con código existente
+export const MOCK_DOCTORS = DOCTORS_DATA;
+export const MOCK_NURSES = NURSES_DATA;
+export const MOCK_PATIENT_USERS = PATIENT_USERS_DATA;
+export const MOCK_GUARDIANS = GUARDIANS_DATA;
+
+// ============================================
+// PACIENTES DE EJEMPLO
+// ============================================
+
+const PATIENTS_DATA: Patient[] = [
+    {
+        id: 'pat-001',
+        name: 'Sofía Ramírez',
         age: 45,
-        rut: "12.345.678-9",
-        photo: "https://i.pravatar.cc/150?img=5",
-        diagnosis: "Carcinoma ductal infiltrante",
-        stage: "IIA",
-        cancerType: "breast",
-        allergies: ["Penicilina", "Látex"],
+        rut: '56789012-3',
+        photo: 'https://i.pravatar.cc/150?img=1',
+        diagnosis: 'Cáncer de Mama',
+        stage: 'Etapa II',
+        cancerType: 'breast',
+        allergies: ['Penicilina', 'Ibuprofeno'],
         currentMedications: [
-            "Tamoxifeno 20mg (1 vez al día)",
-            "Ácido fólico 5mg",
-            "Omeprazol 20mg"
+            'Tamoxifeno 20mg - cada 12 horas',
+            'Paracetamol 500mg - según necesidad'
         ],
         emergencyContacts: [
             {
-                name: "Carlos Rodríguez",
-                relationship: "Esposo",
-                phone: "+56 9 8765 4321"
+                name: 'Laura Ramírez',
+                relationship: 'Hermana',
+                phone: '+56 9 8765 4321'
             },
             {
-                name: "Ana González",
-                relationship: "Hermana",
-                phone: "+56 9 8765 1234"
+                name: 'Roberto Ramírez',
+                relationship: 'Esposo',
+                phone: '+56 9 7654 3210'
             }
         ],
         operations: [
             {
-                date: "2024-08-15",
-                procedure: "Mastectomía parcial izquierda",
-                hospital: "Hospital Regional de Antofagasta"
-            },
-            {
-                date: "2024-09-20",
-                procedure: "Biopsia de ganglio centinela",
-                hospital: "Hospital Regional de Antofagasta"
+                date: '2024-06-15',
+                procedure: 'Mastectomía parcial',
+                hospital: 'Hospital Regional - Dr. Carlos Mendoza'
             }
         ],
-        treatmentSummary: "Paciente en tratamiento hormonal post-quirúrgico. Responde favorablemente a terapia con Tamoxifeno. Control trimestral programado.",
-        assignedDoctor: "Dr. Juan Pérez Morales",
-        qrCode: "QR-p001-2024"
+        treatmentSummary: 'Paciente diagnosticada con cáncer de mama en estadio II. Se realizó mastectomía parcial seguida de quimioterapia adyuvante. Actualmente en terapia hormonal con Tamoxifeno. Pronóstico favorable.',
+        careTeam: [
+            {
+                userId: 'doc-001',
+                name: 'Dr. Carlos Mendoza',
+                role: 'oncologo_principal',
+                assignedAt: new Date('2024-05-01'),
+                status: 'active'
+            },
+            {
+                userId: 'nurse-001',
+                name: 'Enfermera Ana Pérez',
+                role: 'enfermera_jefe',
+                assignedAt: new Date('2024-05-01'),
+                status: 'active'
+            }
+        ],
+        qrCode: 'PAT001ABC123XYZ'
     },
     {
-        id: "p002",
-        name: "Pedro Soto Vargas",
+        id: 'pat-002',
+        name: 'Pedro Flores',
         age: 62,
-        rut: "9.876.543-2",
-        photo: "https://i.pravatar.cc/150?img=12",
-        diagnosis: "Adenocarcinoma gástrico",
-        stage: "IIIB",
-        cancerType: "gastric",
-        allergies: ["Sulfamidas"],
+        rut: '67890123-4',
+        photo: 'https://i.pravatar.cc/150?img=12',
+        diagnosis: 'Linfoma de Hodgkin',
+        stage: 'Etapa III',
+        cancerType: 'other',
+        allergies: ['Aspirina'],
         currentMedications: [
-            "Cisplatino (quimioterapia)",
-            "Ondansetrón 8mg (antiemético)",
-            "Pantoprazol 40mg"
+            'Doxorrubicina 50mg IV - cada 21 días',
+            'Prednisona 40mg - diario',
+            'Ondansetrón 8mg - según necesidad'
         ],
         emergencyContacts: [
             {
-                name: "Rosa Vargas",
-                relationship: "Esposa",
-                phone: "+56 9 7654 3210"
-            }
-        ],
-        operations: [
+                name: 'Carmen Flores',
+                relationship: 'Esposa',
+                phone: '+56 9 6543 2109'
+            },
             {
-                date: "2024-07-10",
-                procedure: "Gastrectomía subtotal",
-                hospital: "Hospital Regional de Antofagasta"
-            }
-        ],
-        treatmentSummary: "Post-gastrectomía en tratamiento quimioterápico adyuvante. Ciclo 3 de 6. Tolerancia moderada.",
-        assignedDoctor: "Dr. Juan Pérez Morales",
-        qrCode: "QR-p002-2024"
-    },
-    {
-        id: "p003",
-        name: "Luis Ramírez Torres",
-        age: 58,
-        rut: "15.234.567-8",
-        photo: "https://i.pravatar.cc/150?img=33",
-        diagnosis: "Adenocarcinoma de próstata",
-        stage: "IIB",
-        cancerType: "prostate",
-        allergies: [],
-        currentMedications: [
-            "Leuprolide (inyección mensual)",
-            "Finasteride 5mg"
-        ],
-        emergencyContacts: [
-            {
-                name: "Carmen Torres",
-                relationship: "Hija",
-                phone: "+56 9 6543 2109"
+                name: 'Diego Flores',
+                relationship: 'Hijo',
+                phone: '+56 9 5432 1098'
             }
         ],
         operations: [],
-        treatmentSummary: "Bajo tratamiento hormonal. PSA en descenso. No requiere cirugía por ahora.",
-        assignedDoctor: "Dr. Juan Pérez Morales",
-        qrCode: "QR-p003-2024"
-    },
-    {
-        id: "p004",
-        name: "Sofía Martínez Díaz",
-        age: 38,
-        rut: "18.765.432-1",
-        photo: "https://i.pravatar.cc/150?img=10",
-        diagnosis: "Carcinoma de células escamosas",
-        stage: "IB",
-        cancerType: "cervical",
-        allergies: ["Yodo"],
-        currentMedications: [
-            "Paracetamol 500mg (según necesidad)",
-            "Ácido fólico 1mg"
-        ],
-        emergencyContacts: [
+        treatmentSummary: 'Paciente con Linfoma de Hodgkin estadio III. En tratamiento con quimioterapia combinada (esquema ABVD). Tolera bien el tratamiento con efectos secundarios controlables. Respuesta parcial favorable después de 4 ciclos.',
+        careTeam: [
             {
-                name: "Roberto Martínez",
-                relationship: "Hermano",
-                phone: "+56 9 5432 1098"
-            }
-        ],
-        operations: [
-            {
-                date: "2024-10-05",
-                procedure: "Conización cervical",
-                hospital: "Hospital Regional de Antofagasta"
-            }
-        ],
-        treatmentSummary: "Post-conización con márgenes libres. En seguimiento cada 6 meses. Pronóstico favorable.",
-        assignedDoctor: "Dra. Patricia Morales Vega",
-        qrCode: "QR-p004-2024"
-    },
-    {
-        id: "p005",
-        name: "Carlos Fernández Castro",
-        age: 70,
-        rut: "7.654.321-0",
-        photo: "https://i.pravatar.cc/150?img=52",
-        diagnosis: "Carcinoma pulmonar de células no pequeñas",
-        stage: "IIIA",
-        cancerType: "lung",
-        allergies: ["Contraste yodado"],
-        currentMedications: [
-            "Carboplatin (quimioterapia)",
-            "Paclitaxel (quimioterapia)",
-            "Oxígeno suplementario según necesidad",
-            "Salbutamol inhalador"
-        ],
-        emergencyContacts: [
-            {
-                name: "Elena Castro",
-                relationship: "Esposa",
-                phone: "+56 9 4321 0987"
+                userId: 'doc-002',
+                name: 'Dra. María González',
+                role: 'oncologo_principal',
+                assignedAt: new Date('2024-03-15'),
+                status: 'active'
             },
             {
-                name: "Andrés Fernández",
-                relationship: "Hijo",
-                phone: "+56 9 4321 0988"
+                userId: 'nurse-002',
+                name: 'Enfermero José Silva',
+                role: 'enfermera_jefe',
+                assignedAt: new Date('2024-03-15'),
+                status: 'active'
             }
         ],
-        operations: [],
-        treatmentSummary: "En tratamiento quimioterápico. Ciclo 2 de 4. Requiere oxigenoterapia domiciliaria. Monitoreo constante de saturación.",
-        assignedDoctor: "Dra. Patricia Morales Vega",
-        qrCode: "QR-p005-2024"
+        qrCode: 'PAT002DEF456UVW'
     }
 ];
 
+export const MOCK_PATIENTS = PATIENTS_DATA;
+
 // ============================================
-// NOTAS DE PACIENTES (Mock Data)
+// NOTAS CLÍNICAS DE EJEMPLO
 // ============================================
-export const MOCK_NOTES: PatientNote[] = [
+
+const NOTES_DATA: PatientNote[] = [
     {
-        id: "n001",
-        title: "Efectos secundarios de Tamoxifeno",
-        content: "Hoy experimenté algunos sofocos leves durante la tarde. Duró aproximadamente 15 minutos. Nada preocupante.",
-        date: "2025-01-10",
-        patientId: "p001",
-        authorId: "u002",
-        authorName: "María González López"
+        id: 'note-001',
+        title: 'Consulta de seguimiento post-cirugía',
+        content: 'Paciente acude a control post-operatorio. Herida quirúrgica en buen estado, sin signos de infección. Retiro de puntos programado para próxima semana. Paciente refiere dolor leve controlado con analgésicos. Se inicia protocolo de quimioterapia adyuvante.',
+        date: '2024-07-01',
+        patientId: 'pat-001',
+        authorId: 'doc-001',
+        authorName: 'Dr. Carlos Mendoza'
     },
     {
-        id: "n002",
-        title: "Control post-operatorio",
-        content: "Cicatrización progresando adecuadamente. Sin signos de infección. Movilidad del brazo mejorando día a día.",
-        date: "2025-01-08",
-        patientId: "p001",
-        authorId: "u001",
-        authorName: "Dr. Juan Pérez Morales"
+        id: 'note-002',
+        title: 'Inicio de terapia hormonal',
+        content: 'Se inicia tratamiento con Tamoxifeno 20mg cada 12 horas. Se explican efectos secundarios potenciales a la paciente. Controles mensuales programados para monitoreo. Paciente comprende indicaciones y firma consentimiento informado.',
+        date: '2024-08-15',
+        patientId: 'pat-001',
+        authorId: 'doc-001',
+        authorName: 'Dr. Carlos Mendoza'
     },
     {
-        id: "n003",
-        title: "Náuseas después de quimioterapia",
-        content: "El Ondansetrón ha ayudado, pero aún tengo náuseas leves por la mañana. Tomando líquidos frecuentemente.",
-        date: "2025-01-11",
-        patientId: "p002",
-        authorId: "u005",
-        authorName: "Pedro Soto Vargas"
+        id: 'note-003',
+        title: 'Evaluación pre-quimioterapia',
+        content: 'Paciente en condiciones para inicio de quimioterapia. Hemograma dentro de parámetros aceptables. Función renal y hepática normales. Se programa primer ciclo de ABVD para esta semana. Paciente orientado sobre cuidados y posibles efectos adversos.',
+        date: '2024-04-01',
+        patientId: 'pat-002',
+        authorId: 'doc-002',
+        authorName: 'Dra. María González'
+    },
+    {
+        id: 'note-004',
+        title: 'Control post 4to ciclo de quimioterapia',
+        content: 'Paciente completó 4to ciclo de quimioterapia. Tolera tratamiento adecuadamente. Náuseas controladas con antiemético. TAC de control muestra reducción del 40% en tamaño de lesiones. Se continúa con protocolo establecido.',
+        date: '2024-08-20',
+        patientId: 'pat-002',
+        authorId: 'doc-002',
+        authorName: 'Dra. María González'
     }
 ];
 
+export const MOCK_NOTES = NOTES_DATA;
+
 // ============================================
-// DOCUMENTOS DE PACIENTES (Mock Data)
+// DOCUMENTOS DE EJEMPLO
 // ============================================
-export const MOCK_DOCUMENTS: PatientDocument[] = [
+
+const DOCUMENTS_DATA: PatientDocument[] = [
     {
-        id: "d001",
-        title: "Receta - Tamoxifeno 20mg",
-        type: "receta",
-        url: "/mock/prescriptions/tamoxifen-p001.pdf",
-        uploadDate: "2024-09-25",
-        patientId: "p001",
-        uploaderId: "u001",
-        description: "Tratamiento hormonal post-quirúrgico"
+        id: 'doc-001',
+        title: 'Biopsia de mama - Resultado histopatológico',
+        type: 'examen',
+        url: 'https://example.com/documents/biopsia-pat001.pdf',
+        uploadDate: '2024-05-10',
+        patientId: 'pat-001',
+        uploaderId: 'doc-001'
     },
     {
-        id: "d002",
-        title: "Mamografía - Septiembre 2024",
-        type: "examen",
-        url: "/mock/results/mammography-p001-sept2024.pdf",
-        uploadDate: "2024-09-15",
-        patientId: "p001",
-        uploaderId: "u001",
-        description: "Control post-operatorio"
+        id: 'doc-002',
+        title: 'Mamografía bilateral',
+        type: 'examen',
+        url: 'https://example.com/documents/mamografia-pat001.pdf',
+        uploadDate: '2024-05-05',
+        patientId: 'pat-001',
+        uploaderId: 'doc-001'
     },
     {
-        id: "d003",
-        title: "Biopsia Ganglio Centinela",
-        type: "examen",
-        url: "/mock/results/biopsy-p001.pdf",
-        uploadDate: "2024-09-22",
-        patientId: "p001",
-        uploaderId: "u001",
-        description: "Análisis histopatológico"
+        id: 'doc-003',
+        title: 'TAC de tórax - Evaluación inicial',
+        type: 'examen',
+        url: 'https://example.com/documents/tac-pat002.pdf',
+        uploadDate: '2024-03-10',
+        patientId: 'pat-002',
+        uploaderId: 'doc-002'
     },
     {
-        id: "d004",
-        title: "Consentimiento Mastectomía",
-        type: "consentimiento",
-        url: "/mock/consent/mastectomy-p001.pdf",
-        uploadDate: "2024-08-10",
-        patientId: "p001",
-        uploaderId: "u001",
-        description: "Consentimiento informado cirugía"
-    },
-    {
-        id: "d005",
-        title: "Informe Quirúrgico - Mastectomía Parcial",
-        type: "cirugia",
-        url: "/mock/surgery/mastectomy-report-p001.pdf",
-        uploadDate: "2024-08-15",
-        patientId: "p001",
-        uploaderId: "u001",
-        description: "Procedimiento quirúrgico exitoso"
-    },
-    {
-        id: "d006",
-        title: "TAC Abdominal con Contraste",
-        type: "examen",
-        url: "/mock/images/ct-scan-p002.jpg",
-        uploadDate: "2024-07-08",
-        patientId: "p002",
-        uploaderId: "u001",
-        description: "Estadificación pre-quirúrgica"
-    },
-    {
-        id: "d007",
-        title: "Protocolo Quimioterapia - Cisplatino",
-        type: "quimioterapia",
-        url: "/mock/chemo/protocol-p002.pdf",
-        uploadDate: "2024-07-15",
-        patientId: "p002",
-        uploaderId: "u001",
-        description: "Ciclo 1-6, cada 21 días"
-    },
-    {
-        id: "d008",
-        title: "Receta - Ondansetrón 8mg",
-        type: "receta",
-        url: "/mock/prescriptions/ondansetron-p002.pdf",
-        uploadDate: "2024-08-01",
-        patientId: "p002",
-        uploaderId: "u001",
-        description: "Antiemético para quimioterapia"
-    },
-    {
-        id: "d009",
-        title: "Informe Gastrectomía Subtotal",
-        type: "cirugia",
-        url: "/mock/surgery/gastrectomy-p002.pdf",
-        uploadDate: "2024-07-10",
-        patientId: "p002",
-        uploaderId: "u001",
-        description: "Resección tumoral exitosa"
-    },
-    {
-        id: "d010",
-        title: "Hemograma Control Quimioterapia",
-        type: "examen",
-        url: "/mock/labs/hemogram-p002.pdf",
-        uploadDate: "2024-08-20",
-        patientId: "p002",
-        uploaderId: "u004",
-        description: "Control hematológico"
+        id: 'doc-004',
+        title: 'Hemograma completo pre-tratamiento',
+        type: 'examen',
+        url: 'https://example.com/documents/hemograma-pat002.pdf',
+        uploadDate: '2024-03-28',
+        patientId: 'pat-002',
+        uploaderId: 'doc-002'
     }
 ];
 
+export const MOCK_DOCUMENTS = DOCUMENTS_DATA;
+
 // ============================================
-// USUARIOS DE PRUEBA (Tipados según rol)
+// TODOS LOS USUARIOS COMBINADOS
 // ============================================
-const MOCK_USERS: User[] = [
-    // Doctor
-    {
-        id: "u001",
-        name: "Dr. Juan Pérez Morales",
-        email: "doctor@ucn.cl",
-        role: "doctor",
-        scanHistory: [
-            {
-                patientId: "p001",
-                scannedAt: new Date("2025-01-10T09:30:00")
-            },
-            {
-                patientId: "p002",
-                scannedAt: new Date("2025-01-10T11:15:00")
-            },
-            {
-                patientId: "p001",
-                scannedAt: new Date("2025-01-12T14:00:00")
-            }
-        ]
-    } as DoctorUser,
 
-    // Paciente (María González)
-    {
-        id: "u002",
-        name: "María González López",
-        email: "paciente@ucn.cl",
-        role: "patient",
-        patientId: "p001"
-    } as PatientUser,
-
-    // Guardian/Cuidador (Esposo de María)
-    {
-        id: "u003",
-        name: "Carlos Rodríguez Muñoz",
-        email: "guardian@ucn.cl",
-        role: "guardian",
-        patientIds: ["p001"] // Tiene acceso a la ficha de María
-    } as GuardianUser,
-
-    // Enfermera
-    {
-        id: "u004",
-        name: "Ana Silva Rojas",
-        email: "enfermera@ucn.cl",
-        role: "nurse",
-        scanHistory: [
-            {
-                patientId: "p002",
-                scannedAt: new Date("2025-01-11T08:45:00")
-            },
-            {
-                patientId: "p003",
-                scannedAt: new Date("2025-01-11T10:30:00")
-            }
-        ]
-    } as NurseUser,
-
-    // Paciente adicional (Pedro Soto)
-    {
-        id: "u005",
-        name: "Pedro Soto Vargas",
-        email: "pedro.soto@ucn.cl",
-        role: "patient",
-        patientId: "p002"
-    } as PatientUser,
-
-    // Guardian adicional (Hija de Luis Ramírez)
-    {
-        id: "u006",
-        name: "Carmen Torres",
-        email: "carmen.torres@gmail.com",
-        role: "guardian",
-        patientIds: ["p003"]
-    } as GuardianUser,
-
-    // Doctora adicional
-    {
-        id: "u007",
-        name: "Dra. Patricia Morales Vega",
-        email: "patricia.morales@ucn.cl",
-        role: "doctor",
-        scanHistory: [
-            {
-                patientId: "p004",
-                scannedAt: new Date("2025-01-09T10:00:00")
-            },
-            {
-                patientId: "p005",
-                scannedAt: new Date("2025-01-09T14:30:00")
-            }
-        ]
-    } as DoctorUser,
-
-    // Paciente adicional (Sofía Martínez)
-    {
-        id: "u008",
-        name: "Sofía Martínez Díaz",
-        email: "sofia.martinez@ucn.cl",
-        role: "patient",
-        patientId: "p004"
-    } as PatientUser,
-
-    // Paciente adicional (Carlos Fernández)
-    {
-        id: "u009",
-        name: "Carlos Fernández Castro",
-        email: "carlos.fernandez@ucn.cl",
-        role: "patient",
-        patientId: "p005"
-    } as PatientUser
+const ALL_USERS_DATA: User[] = [
+    ...DOCTORS_DATA,
+    ...NURSES_DATA,
+    ...PATIENT_USERS_DATA,
+    ...GUARDIANS_DATA
 ];
 
-// Simula un delay de red
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const MOCK_USERS = ALL_USERS_DATA;
 
-export const mockApiService = {
-    login: async (email: string, _password: string) => {
-        await delay(800); // Simula latencia de red
+// ============================================
+// MAPS PARA ACCESO RÁPIDO (O(1) lookup)
+// ============================================
 
-        // Para desarrollo, cualquier contraseña funciona (por eso _password no se usa)
-        const user = MOCK_USERS.find(u => u.email === email);
+// Maps para búsquedas rápidas por ID
+export const USERS_BY_ID = new Map<string, User>(
+    ALL_USERS_DATA.map(user => [user.id, user])
+);
+
+export const PATIENTS_BY_ID = new Map<string, Patient>(
+    PATIENTS_DATA.map(patient => [patient.id, patient])
+);
+
+export const NOTES_BY_ID = new Map<string, PatientNote>(
+    NOTES_DATA.map(note => [note.id, note])
+);
+
+export const DOCUMENTS_BY_ID = new Map<string, PatientDocument>(
+    DOCUMENTS_DATA.map(doc => [doc.id, doc])
+);
+
+// Índices secundarios para búsquedas comunes
+export const USERS_BY_EMAIL = new Map<string, User>(
+    ALL_USERS_DATA.map(user => [user.email.toLowerCase(), user])
+);
+
+export const NOTES_BY_PATIENT = new Map<string, PatientNote[]>();
+NOTES_DATA.forEach(note => {
+    const existing = NOTES_BY_PATIENT.get(note.patientId) || [];
+    NOTES_BY_PATIENT.set(note.patientId, [...existing, note]);
+});
+
+export const DOCUMENTS_BY_PATIENT = new Map<string, PatientDocument[]>();
+DOCUMENTS_DATA.forEach(doc => {
+    const existing = DOCUMENTS_BY_PATIENT.get(doc.patientId) || [];
+    DOCUMENTS_BY_PATIENT.set(doc.patientId, [...existing, doc]);
+});
+
+// Índice de pacientes por usuario del equipo de cuidado
+export const PATIENTS_BY_CARE_TEAM_MEMBER = new Map<string, Patient[]>();
+PATIENTS_DATA.forEach(patient => {
+    patient.careTeam.forEach(member => {
+        const existing = PATIENTS_BY_CARE_TEAM_MEMBER.get(member.userId) || [];
+        PATIENTS_BY_CARE_TEAM_MEMBER.set(member.userId, [...existing, patient]);
+    });
+});
+
+// ============================================
+// FUNCIONES DE ACCESO A DATOS (OPTIMIZADAS CON MAPS)
+// ============================================
+
+/**
+ * Obtiene un usuario por ID - O(1) lookup
+ */
+export const getUserById = (userId: string): User | undefined => {
+    return USERS_BY_ID.get(userId);
+};
+
+/**
+ * Obtiene un usuario por email - O(1) lookup
+ */
+export const getUserByEmail = (email: string): User | undefined => {
+    return USERS_BY_EMAIL.get(email.toLowerCase());
+};
+
+/**
+ * Obtiene un paciente por ID - O(1) lookup
+ */
+export const getPatientById = (patientId: string): Patient | undefined => {
+    return PATIENTS_BY_ID.get(patientId);
+};
+
+/**
+ * Obtiene las notas de un paciente - O(1) lookup
+ */
+export const getNotesByPatientId = (patientId: string): PatientNote[] => {
+    return NOTES_BY_PATIENT.get(patientId) || [];
+};
+
+/**
+ * Obtiene los documentos de un paciente - O(1) lookup
+ */
+export const getDocumentsByPatientId = (patientId: string): PatientDocument[] => {
+    return DOCUMENTS_BY_PATIENT.get(patientId) || [];
+};
+
+/**
+ * Obtiene los pacientes asociados a un usuario según su rol - O(1) o O(n) optimizado
+ */
+export const getPatientsByUserId = (userId: string): Patient[] => {
+    const user = USERS_BY_ID.get(userId);
+    
+    if (!user) return [];
+    
+    switch (user.role) {
+        case 'doctor':
+        case 'nurse':
+            // O(1) lookup usando el índice preconstruido
+            return PATIENTS_BY_CARE_TEAM_MEMBER.get(userId) || [];
         
-        if (!user) {
-            throw new Error("Usuario no encontrado. Usa uno de los correos de prueba.");
-        }
-
-        // Simula un token JWT (en realidad es solo un string random)
-        const token = `mock-token-${user.id}-${Date.now()}`;
-
-        return {
-            token,
-            user,
-        };
-    },
-
-    checkAuthStatus: async (token: string) => {
-        await delay(300);
-
-        // Extraer el ID del usuario del token mock
-        const userId = token.split('-')[2];
-        const user = MOCK_USERS.find(u => u.id === userId);
-
-        if (!user) {
-            throw new Error("Token inválido");
-        }
-
-        return user;
-    },
-
-    register: async (userData: any) => {
-        await delay(800);
-
-        const newUserId = `u${String(MOCK_USERS.length + 1).padStart(3, '0')}`;
-
-        // Crear usuario según su rol
-        let newUser: User;
-
-        switch (userData.role) {
-            case 'patient':
-                const newPatientId = `p${String(MOCK_PATIENTS.length + 1).padStart(3, '0')}`;
-                newUser = {
-                    id: newUserId,
-                    name: userData.name,
-                    email: userData.email,
-                    role: 'patient',
-                    patientId: newPatientId
-                } as PatientUser;
-
-                // Crear también el registro de paciente
-                const newPatient: Patient = {
-                    id: newPatientId,
-                    name: userData.name,
-                    age: userData.age || 0,
-                    rut: userData.rut || "",
-                    diagnosis: "Pendiente de diagnóstico",
-                    stage: "N/A",
-                    cancerType: "breast", // Default, se actualizará después
-                    allergies: [],
-                    currentMedications: [],
-                    emergencyContacts: [],
-                    operations: [],
-                    treatmentSummary: "Paciente recién registrado",
-                    assignedDoctor: "Sin asignar",
-                    qrCode: `QR-${newPatientId}-2025`
-                };
-                MOCK_PATIENTS.push(newPatient);
-                break;
-
-            case 'guardian':
-                newUser = {
-                    id: newUserId,
-                    name: userData.name,
-                    email: userData.email,
-                    role: 'guardian',
-                    patientIds: []
-                } as GuardianUser;
-                break;
-
-            case 'doctor':
-                newUser = {
-                    id: newUserId,
-                    name: userData.name,
-                    email: userData.email,
-                    role: 'doctor',
-                    scanHistory: []
-                } as DoctorUser;
-                break;
-
-            case 'nurse':
-                newUser = {
-                    id: newUserId,
-                    name: userData.name,
-                    email: userData.email,
-                    role: 'nurse',
-                    scanHistory: []
-                } as NurseUser;
-                break;
-
-            default:
-                throw new Error("Rol de usuario no válido");
-        }
-
-        MOCK_USERS.push(newUser);
-
-        return {
-            message: "Usuario registrado exitosamente",
-            user: newUser,
-        };
-    },
-
-    // Función adicional para simular escaneo de QR
-    scanPatientQR: async (userId: string, patientId: string) => {
-        await delay(500);
-
-        const user = MOCK_USERS.find(u => u.id === userId);
-        const patient = MOCK_PATIENTS.find(p => p.id === patientId);
-
-        if (!user || !patient) {
-            throw new Error("Usuario o paciente no encontrado");
-        }
-
-        if (user.role !== 'doctor' && user.role !== 'nurse') {
-            throw new Error("Solo doctores y enfermeras pueden escanear QR");
-        }
-
-        // Agregar el registro de escaneo
-        const scanRecord = {
-            patientId,
-            scannedAt: new Date()
-        };
-
-        if (user.role === 'doctor') {
-            (user as DoctorUser).scanHistory = [
-                ...(user as DoctorUser).scanHistory || [],
-                scanRecord
-            ];
-        } else if (user.role === 'nurse') {
-            (user as NurseUser).scanHistory = [
-                ...(user as NurseUser).scanHistory || [],
-                scanRecord
-            ];
-        }
-
-        return {
-            message: "QR escaneado exitosamente",
-            patient
-        };
+        case 'guardian':
+            // O(n) pero n es pequeño (pocos pacientes por guardian)
+            const patientIds = (user as GuardianUser).patientIds;
+            return patientIds
+                .map(id => PATIENTS_BY_ID.get(id))
+                .filter((p): p is Patient => p !== undefined);
+        
+        case 'patient':
+            // O(1) lookup
+            const patientId = (user as PatientUser).patientId;
+            const patient = PATIENTS_BY_ID.get(patientId);
+            return patient ? [patient] : [];
+        
+        default:
+            return [];
     }
 };
 
 // ============================================
-// FUNCIONES AUXILIARES - Acceso a datos mock
+// FUNCIONES DE UTILIDAD
 // ============================================
 
 /**
- * Obtiene la lista de usuarios de prueba para mostrar en la UI de login
+ * Retorna todos los usuarios (para compatibilidad con código legacy)
+ * @deprecated Usa MOCK_USERS directamente o las funciones específicas como getUserById
  */
 export const getMockUsers = () => MOCK_USERS;
 
 /**
- * Obtiene la lista de pacientes de prueba
+ * Retorna todos los pacientes (para compatibilidad con código legacy)
+ * @deprecated Usa MOCK_PATIENTS directamente o las funciones específicas como getPatientById
  */
 export const getMockPatients = () => MOCK_PATIENTS;
 
 /**
- * Obtiene un paciente específico por su ID
+ * Retorna credenciales de login para todos los usuarios
  */
-export const getPatientById = (patientId: string): Patient | undefined => {
-    return MOCK_PATIENTS.find(p => p.id === patientId);
+export const getLoginCredentials = () => {
+    return MOCK_USERS.map(u => ({
+        email: u.email,
+        role: u.role,
+        name: u.name,
+        password: "test123"
+    }));
 };
 
+export const printLoginInfo = () => {
+    console.log('\n=== CREDENCIALES DE ACCESO ===\n');
+    console.log('Contraseña para todos: test123\n');
+    
+    console.log('DOCTORES:');
+    MOCK_DOCTORS.forEach(d => console.log(`  - ${d.email} (${d.name})`));
+    
+    console.log('\nENFERMERAS/OS:');
+    MOCK_NURSES.forEach(n => console.log(`  - ${n.email} (${n.name})`));
+    
+    console.log('\nPACIENTES:');
+    MOCK_PATIENT_USERS.forEach(p => console.log(`  - ${p.email} (${p.name})`));
+    
+    console.log('\nCUIDADORES:');
+    MOCK_GUARDIANS.forEach(g => console.log(`  - ${g.email} (${g.name})`));
+    
+    console.log('\n==============================\n');
+};
+
+// ============================================
+// MOCK API SERVICE (Compatible con apiService)
+// ============================================
+
 /**
- * Obtiene los datos del paciente asociado a un usuario
- * Útil cuando un usuario de tipo 'patient' inicia sesión
+ * Servicio Mock API compatible con la interfaz de apiService
+ * Para usar durante desarrollo sin backend
  */
-export const getPatientByUserId = (userId: string): Patient | undefined => {
-    const user = MOCK_USERS.find(u => u.id === userId);
-    if (user && user.role === 'patient') {
-        return MOCK_PATIENTS.find(p => p.id === (user as PatientUser).patientId);
+export const mockApiService = {
+    /**
+     * Mock de login - Busca usuario por email
+     */
+    login: async (email: string, _password: string) => {
+        // Simular delay de red
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const user = getUserByEmail(email);
+        
+        if (!user) {
+            throw new Error('Usuario no encontrado');
+        }
+        
+        // En mock, cualquier contraseña funciona
+        // Generar un token fake
+        const token = `mock-token-${user.id}-${Date.now()}`;
+        
+        return {
+            token,
+            user
+        };
+    },
+
+    /**
+     * Mock de registro - Crea un nuevo usuario
+     */
+    register: async (userData: any) => {
+        // Simular delay de red
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Verificar si el email ya existe
+        const existingUser = getUserByEmail(userData.email);
+        if (existingUser) {
+            throw new Error('El email ya está registrado');
+        }
+        
+        // Crear nuevo usuario (en mock solo lo retornamos, no lo guardamos)
+        const newUser: User = {
+            id: `user-${Date.now()}`,
+            name: userData.name,
+            rut: userData.rut || '00000000-0',
+            email: userData.email,
+            role: userData.role || 'patient',
+            ...(userData.role === 'patient' ? { patientId: `pat-${Date.now()}` } : {}),
+            ...(userData.role === 'guardian' ? { patientIds: [] } : {}),
+        } as User;
+        
+        return {
+            message: 'Usuario registrado exitosamente',
+            user: newUser
+        };
+    },
+
+    /**
+     * Mock de verificación de estado de autenticación
+     */
+    checkAuthStatus: async (token: string) => {
+        // Simular delay de red
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Extraer ID del token mock
+        const match = token.match(/mock-token-([^-]+)-/);
+        if (!match) {
+            throw new Error('Token inválido');
+        }
+        
+        const userId = match[1];
+        const user = getUserById(userId);
+        
+        if (!user) {
+            throw new Error('Usuario no encontrado');
+        }
+        
+        return user;
+    },
+
+    /**
+     * Mock de escaneo de QR de paciente
+     */
+    scanPatientQR: async (userId: string, patientId: string) => {
+        // Simular delay de red
+        await new Promise(resolve => setTimeout(resolve, 600));
+        
+        const user = getUserById(userId);
+        if (!user) {
+            throw new Error('Usuario no encontrado');
+        }
+        
+        // Buscar paciente por ID o por QR code
+        let patient = getPatientById(patientId);
+        
+        // Si no se encuentra por ID, buscar por código QR
+        if (!patient) {
+            patient = PATIENTS_DATA.find(p => p.qrCode === patientId);
+        }
+        
+        if (!patient) {
+            throw new Error('Paciente no encontrado');
+        }
+        
+        // Verificar que el usuario tenga acceso al paciente
+        const hasAccess = patient.careTeam.some(member => member.userId === userId);
+        
+        if (!hasAccess && user.role !== 'doctor' && user.role !== 'nurse') {
+            throw new Error('No tiene permisos para acceder a este paciente');
+        }
+        
+        // Registrar el escaneo en el historial del doctor/enfermera
+        if (user.role === 'doctor' || user.role === 'nurse') {
+            const clinicalUser = user as DoctorUser | NurseUser;
+            if (!clinicalUser.scanHistory) {
+                clinicalUser.scanHistory = [];
+            }
+            clinicalUser.scanHistory.push({
+                patientId: patient.id,
+                scannedAt: new Date()
+            });
+        }
+        
+        return {
+            success: true,
+            patient,
+            scannedAt: new Date()
+        };
     }
-    return undefined;
 };
 
-/**
- * Obtiene todos los pacientes a cargo de un guardian
- */
-export const getPatientsByGuardian = (guardianUserId: string): Patient[] => {
-    const user = MOCK_USERS.find(u => u.id === guardianUserId);
-    if (user && user.role === 'guardian') {
-        const patientIds = (user as GuardianUser).patientIds;
-        return MOCK_PATIENTS.filter(p => patientIds.includes(p.id));
-    }
-    return [];
-};
-
-/**
- * Obtiene todos los pacientes asignados a un doctor
- */
-export const getPatientsByDoctor = (doctorName: string): Patient[] => {
-    return MOCK_PATIENTS.filter(p => p.assignedDoctor === doctorName);
-};
-
-/**
- * Obtiene todas las notas de un paciente específico
- */
-export const getNotesByPatientId = (patientId: string): PatientNote[] => {
-    return MOCK_NOTES.filter(n => n.patientId === patientId);
-};
-
-/**
- * Obtiene todos los documentos de un paciente específico
- */
-export const getDocumentsByPatientId = (patientId: string): PatientDocument[] => {
-    return MOCK_DOCUMENTS.filter(d => d.patientId === patientId);
-};
+// ============================================
+// FUNCIONES CRUD PARA NOTAS Y DOCUMENTOS
+// ============================================
 
 /**
  * Crea una nueva nota para un paciente
  */
 export const createNote = async (noteData: Omit<PatientNote, 'id' | 'date'>): Promise<PatientNote> => {
-    await delay(500);
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     const newNote: PatientNote = {
-        id: `n${String(MOCK_NOTES.length + 1).padStart(3, '0')}`,
+        id: `note-${String(NOTES_DATA.length + 1).padStart(3, '0')}`,
         ...noteData,
         date: new Date().toISOString().split('T')[0]
     };
     
-    MOCK_NOTES.push(newNote);
+    // Agregar a los datos y actualizar índices
+    NOTES_DATA.push(newNote);
+    NOTES_BY_ID.set(newNote.id, newNote);
+    
+    const existingNotes = NOTES_BY_PATIENT.get(newNote.patientId) || [];
+    NOTES_BY_PATIENT.set(newNote.patientId, [...existingNotes, newNote]);
+    
     return newNote;
 };
 
@@ -682,29 +643,57 @@ export const createNote = async (noteData: Omit<PatientNote, 'id' | 'date'>): Pr
  * Actualiza una nota existente
  */
 export const updateNote = async (noteId: string, updates: Partial<PatientNote>): Promise<PatientNote> => {
-    await delay(500);
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    const noteIndex = MOCK_NOTES.findIndex(n => n.id === noteId);
-    if (noteIndex === -1) {
+    const note = NOTES_BY_ID.get(noteId);
+    if (!note) {
         throw new Error("Nota no encontrada");
     }
     
-    MOCK_NOTES[noteIndex] = { ...MOCK_NOTES[noteIndex], ...updates };
-    return MOCK_NOTES[noteIndex];
+    const updatedNote = { ...note, ...updates };
+    
+    // Actualizar en todas las estructuras de datos
+    const noteIndex = NOTES_DATA.findIndex(n => n.id === noteId);
+    if (noteIndex !== -1) {
+        NOTES_DATA[noteIndex] = updatedNote;
+    }
+    
+    NOTES_BY_ID.set(noteId, updatedNote);
+    
+    // Actualizar en el índice por paciente
+    const patientNotes = NOTES_BY_PATIENT.get(note.patientId) || [];
+    const updatedPatientNotes = patientNotes.map(n => n.id === noteId ? updatedNote : n);
+    NOTES_BY_PATIENT.set(note.patientId, updatedPatientNotes);
+    
+    return updatedNote;
 };
 
 /**
  * Elimina una nota
  */
 export const deleteNote = async (noteId: string): Promise<boolean> => {
-    await delay(500);
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    const noteIndex = MOCK_NOTES.findIndex(n => n.id === noteId);
-    if (noteIndex === -1) {
+    const note = NOTES_BY_ID.get(noteId);
+    if (!note) {
         throw new Error("Nota no encontrada");
     }
     
-    MOCK_NOTES.splice(noteIndex, 1);
+    // Eliminar de todas las estructuras de datos
+    const noteIndex = NOTES_DATA.findIndex(n => n.id === noteId);
+    if (noteIndex !== -1) {
+        NOTES_DATA.splice(noteIndex, 1);
+    }
+    
+    NOTES_BY_ID.delete(noteId);
+    
+    // Eliminar del índice por paciente
+    const patientNotes = NOTES_BY_PATIENT.get(note.patientId) || [];
+    const updatedPatientNotes = patientNotes.filter(n => n.id !== noteId);
+    NOTES_BY_PATIENT.set(note.patientId, updatedPatientNotes);
+    
     return true;
 };
 
@@ -712,15 +701,22 @@ export const deleteNote = async (noteId: string): Promise<boolean> => {
  * Sube un nuevo documento para un paciente
  */
 export const uploadDocument = async (docData: Omit<PatientDocument, 'id' | 'uploadDate'>): Promise<PatientDocument> => {
-    await delay(800);
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     const newDoc: PatientDocument = {
-        id: `d${String(MOCK_DOCUMENTS.length + 1).padStart(3, '0')}`,
+        id: `doc-${String(DOCUMENTS_DATA.length + 1).padStart(3, '0')}`,
         ...docData,
         uploadDate: new Date().toISOString().split('T')[0]
     };
     
-    MOCK_DOCUMENTS.push(newDoc);
+    // Agregar a los datos y actualizar índices
+    DOCUMENTS_DATA.push(newDoc);
+    DOCUMENTS_BY_ID.set(newDoc.id, newDoc);
+    
+    const existingDocs = DOCUMENTS_BY_PATIENT.get(newDoc.patientId) || [];
+    DOCUMENTS_BY_PATIENT.set(newDoc.patientId, [...existingDocs, newDoc]);
+    
     return newDoc;
 };
 
@@ -728,69 +724,26 @@ export const uploadDocument = async (docData: Omit<PatientDocument, 'id' | 'uplo
  * Elimina un documento
  */
 export const deleteDocument = async (docId: string): Promise<boolean> => {
-    await delay(500);
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    const docIndex = MOCK_DOCUMENTS.findIndex(d => d.id === docId);
-    if (docIndex === -1) {
+    const doc = DOCUMENTS_BY_ID.get(docId);
+    if (!doc) {
         throw new Error("Documento no encontrado");
     }
     
-    MOCK_DOCUMENTS.splice(docIndex, 1);
-    return true;
-};
-
-/**
- * Actualiza información de un paciente
- */
-export const updatePatient = async (patientId: string, updates: Partial<Patient>): Promise<Patient> => {
-    await delay(600);
-    
-    const patientIndex = MOCK_PATIENTS.findIndex(p => p.id === patientId);
-    if (patientIndex === -1) {
-        throw new Error("Paciente no encontrado");
+    // Eliminar de todas las estructuras de datos
+    const docIndex = DOCUMENTS_DATA.findIndex(d => d.id === docId);
+    if (docIndex !== -1) {
+        DOCUMENTS_DATA.splice(docIndex, 1);
     }
     
-    MOCK_PATIENTS[patientIndex] = { ...MOCK_PATIENTS[patientIndex], ...updates };
-    return MOCK_PATIENTS[patientIndex];
-};
-
-/**
- * Busca pacientes por nombre (útil para búsquedas)
- */
-export const searchPatientsByName = (query: string): Patient[] => {
-    const lowerQuery = query.toLowerCase();
-    return MOCK_PATIENTS.filter(p => 
-        p.name.toLowerCase().includes(lowerQuery) ||
-        p.rut.includes(query)
-    );
-};
-
-/**
- * Obtiene estadísticas generales de un paciente
- */
-export const getPatientStats = (patientId: string) => {
-    const notes = getNotesByPatientId(patientId);
-    const documents = getDocumentsByPatientId(patientId);
-    const patient = getPatientById(patientId);
+    DOCUMENTS_BY_ID.delete(docId);
     
-    return {
-        totalNotes: notes.length,
-        totalDocuments: documents.length,
-        totalMedications: patient?.currentMedications.length || 0,
-        totalOperations: patient?.operations.length || 0,
-        totalAllergies: patient?.allergies.length || 0,
-        emergencyContactsCount: patient?.emergencyContacts.length || 0
-    };
-};
-
-/**
- * Obtiene la información completa de acceso para desarrollo/debug
- */
-export const getLoginCredentials = () => {
-    return MOCK_USERS.map(u => ({
-        email: u.email,
-        role: u.role,
-        name: u.name,
-        password: "cualquier contraseña funciona"
-    }));
+    // Eliminar del índice por paciente
+    const patientDocs = DOCUMENTS_BY_PATIENT.get(doc.patientId) || [];
+    const updatedPatientDocs = patientDocs.filter(d => d.id !== docId);
+    DOCUMENTS_BY_PATIENT.set(doc.patientId, updatedPatientDocs);
+    
+    return true;
 };

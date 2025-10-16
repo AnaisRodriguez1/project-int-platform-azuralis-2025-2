@@ -13,11 +13,15 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Password regex pattern: at least one lowercase, one uppercase, and one digit
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
 
+
+
 // Error Messages
 export const ERROR_MESSAGES = {
   REQUIRED_NAME: "El nombre es obligatorio.",
   REQUIRED_EMAIL: "El email es obligatorio.",
   INVALID_EMAIL: "El email no es válido.",
+  REQUIRED_RUT: "El RUT es obligatorio.",
+  INVALID_RUT: "El RUT no es válido. Formato: 12345678-9",
   REQUIRED_ROLE: "El rol es obligatorio.",
   REQUIRED_PASSWORD: "La contraseña es obligatoria.",
   INVALID_PASSWORD: `La contraseña debe tener entre ${PASSWORD_MIN_LENGTH} y ${PASSWORD_MAX_LENGTH} caracteres, incluir mayúscula, minúscula y número.`,
@@ -47,6 +51,66 @@ export const validatePassword = (password: string): boolean => {
 };
 
 /**
+ * Validates Chilean RUT format and check digit
+ * @param rut - RUT string to validate (e.g., "12345678-9")
+ * @returns true if RUT is valid, false otherwise
+ */
+export const validateRUT = (rut: string): boolean => {
+  // Remove dots and trim
+  const cleanRut = rut.replace(/\./g, '').trim();
+  
+  // Check basic format: should have at least 8-9 digits, a hyphen, and a check digit
+  if (!/^\d{7,8}-[\dkK]$/.test(cleanRut)) {
+    return false;
+  }
+
+  // Split RUT and check digit
+  const [rutNumber, checkDigit] = cleanRut.split('-');
+
+  // Calculate check digit
+  let sum = 0;
+  let multiplier = 2;
+
+  for (let i = rutNumber.length - 1; i >= 0; i--) {
+    sum += parseInt(rutNumber[i]) * multiplier;
+    multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  }
+
+  const calculatedCheckDigit = 11 - (sum % 11);
+  let expectedCheckDigit: string;
+
+  if (calculatedCheckDigit === 11) {
+    expectedCheckDigit = '0';
+  } else if (calculatedCheckDigit === 10) {
+    expectedCheckDigit = 'K';
+  } else {
+    expectedCheckDigit = calculatedCheckDigit.toString();
+  }
+
+  return checkDigit.toUpperCase() === expectedCheckDigit;
+};
+
+/**
+ * Formats RUT string to standard format (12345678-9)
+ * @param rut - RUT string to format
+ * @returns Formatted RUT string
+ */
+export const formatRUT = (rut: string): string => {
+  // Remove all non-alphanumeric characters except K
+  const cleaned = rut.replace(/[^\dkK]/g, '');
+  
+  if (cleaned.length === 0) return '';
+  
+  // Split into body and check digit
+  const body = cleaned.slice(0, -1);
+  const checkDigit = cleaned.slice(-1).toUpperCase();
+  
+  if (body.length === 0) return checkDigit;
+  
+  return `${body}-${checkDigit}`;
+};
+
+/**
  * Validates basic registration form fields
  * @param formData - Registration form data
  * @returns Object containing field errors, empty if no errors
@@ -57,6 +121,13 @@ export const validateBasicFields = (formData: RegisterFormData): FieldErrors => 
   // Validate name
   if (!formData.name.trim()) {
     errors.name = ERROR_MESSAGES.REQUIRED_NAME;
+  }
+
+  // Validate RUT
+  if (!formData.rut.trim()) {
+    errors.rut = ERROR_MESSAGES.REQUIRED_RUT;
+  } else if (!validateRUT(formData.rut)) {
+    errors.rut = ERROR_MESSAGES.INVALID_RUT;
   }
 
   // Validate email

@@ -5,7 +5,7 @@ import {
   getDocumentsByPatientId,
   uploadDocument,
   deleteDocument as deleteDocumentApi,
-  getMockUsers
+  getUserById
 } from '@/services/mockApi';
 import { type PatientDocument, type DocumentType, getDocumentTypeColor, getDocumentTypeLabel } from '@/types/medical';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Calendar, Trash2, Eye, FolderOpen, Upload, Camera } from 'lucide-react';
 
-export function DocumentsPatient() {
+interface DocumentsPatientProps {
+  hideHeader?: boolean; // Prop para ocultar el header cuando se usa en un wrapper
+}
+
+export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps = {}) {
   const { user } = useAuth();
   const { patientId, cancerColor } = usePatientData();
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
@@ -144,9 +148,8 @@ export function DocumentsPatient() {
     // Pacientes pueden eliminar documentos relacionados con ellos (excepto los de doctor/enfermera)
     if (user.role === 'patient') {
       if (document.patientId === patientId) {
-        // Verificar si el uploader es doctor o enfermera
-        const users = getMockUsers();
-        const uploader = users.find(u => u.id === document.uploaderId);
+        // Verificar si el uploader es doctor o enfermera usando búsqueda O(1)
+        const uploader = getUserById(document.uploaderId);
         if (uploader && (uploader.role === 'doctor' || uploader.role === 'nurse')) {
           return false;
         }
@@ -167,20 +170,35 @@ export function DocumentsPatient() {
 
   return (
     <div className="mt-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Mis Documentos</h2>
-          <p className="text-gray-600">Guarda tus recetas, resultados y documentos médicos</p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Mis Documentos</h2>
+            <p className="text-gray-600">Guarda tus recetas, resultados y documentos médicos</p>
+          </div>
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            style={{ backgroundColor: cancerColor.color }}
+            className="text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Documento
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsDialogOpen(true)}
-          style={{ backgroundColor: cancerColor.color }}
-          className="text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Documento
-        </Button>
-      </div>
+      )}
+      
+      {hideHeader && (
+        <div className="flex justify-end">
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            style={{ backgroundColor: cancerColor.color }}
+            className="text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Documento
+          </Button>
+        </div>
+      )}
 
       {/* Filtros por tipo de documento */}
       {documents.length > 0 && (

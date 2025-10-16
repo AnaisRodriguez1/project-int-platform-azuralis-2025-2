@@ -30,21 +30,6 @@ export interface Operation {
   hospital: string;
 }
 
-export type CareTeamRole = 
-  | 'oncologo_principal'
-  | 'cirujano'
-  | 'radiologo'
-  | 'enfermera_jefe'
-  | 'consultor';
-
-export interface CareTeamMember {
-  userId: string;       // El ID del DoctorUser o NurseUser
-  name: string;         // El nombre, para fácil visualización
-  role: CareTeamRole;   // El rol específico que cumple para este paciente
-  assignedAt: Date;     // Cuándo fue asignado al equipo
-  status: 'active' | 'inactive'; // Para mantener un historial sin borrar
-}
-
 export interface Patient {
   id: string;
   name: string;
@@ -59,7 +44,7 @@ export interface Patient {
   emergencyContacts: EmergencyContact[];
   operations: Operation[];
   treatmentSummary: string; //Resumen de tratamientos del paciente
-  careTeam: CareTeamMember[];
+  assignedDoctor: string;
   qrCode: string;
 }
 
@@ -98,7 +83,6 @@ export interface PatientDocument {
 
 export interface RegisterFormData {
   name: string;
-  rut: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -132,20 +116,6 @@ export const documentType: Record<DocumentType, {color: string; name: string}> =
   otro:{color: 'bg-gray-100 text-gray-800', name: 'Otro'},
 };
 
-/**
- * Obtiene el color de un tipo de documento
- */
-export const getDocumentTypeColor = (type: DocumentType): string => {
-  return documentType[type]?.color || documentType.otro.color;
-};
-
-/**
- * Obtiene la etiqueta de un tipo de documento
- */
-export const getDocumentTypeLabel = (type: DocumentType): string => {
-  return documentType[type]?.name || documentType.otro.name;
-};
-
 // --- INTERFACES DE USUARIO (Simplificadas y limpias) ---
 
 export interface ScanRecord {
@@ -157,7 +127,6 @@ export interface ScanRecord {
 interface BaseUser {
   id: string;
   name: string;
-  rut: string;
   email: string;
   role: UserRole;
 }
@@ -189,7 +158,6 @@ export interface DoctorUser extends ClinicalStaffUser {
 export interface NurseUser extends ClinicalStaffUser {
   role: 'nurse';
   department?: string;
-  license?: string;
 }
 
 // Tipo de unión final para cualquier tipo de usuario.
@@ -210,6 +178,10 @@ export type CrudActions = {
 
 export type OwnershipScope = 'own' | 'all';
 
+/**
+ * Modelo único que cubre todos los permisos posibles en la aplicación.
+ * Las propiedades son opcionales porque no todos los roles tendrán acceso a todo.
+ */
 export interface AppPermissions {
   patientProfile?: {
     editableFields: Set<keyof Patient>;
@@ -218,14 +190,14 @@ export interface AppPermissions {
   documents?: CrudActions & { scope: OwnershipScope };
 }
 
-// --- PERFILES DE PERMISOS POR ROL ---
+// --- PERFILES DE PERMISOS POR ROL (LA ÚNICA FUENTE DE VERDAD) ---
 
 export const DOCTOR_PERMISSIONS: AppPermissions = {
   patientProfile: {
     editableFields: new Set<keyof Patient>([
-      'diagnosis', 'stage', 'cancerType', 
+      'name', 'age', 'photo', 'diagnosis', 'stage', 'cancerType', 
       'allergies', 'currentMedications', 'emergencyContacts', 
-      'operations', 'treatmentSummary','careTeam'
+      'operations', 'treatmentSummary', 'assignedDoctor'
     ]),
   },
   notes: { create: true, read: true, update: true, delete: true, scope: 'all' },
@@ -235,37 +207,17 @@ export const DOCTOR_PERMISSIONS: AppPermissions = {
 export const NURSE_PERMISSIONS: AppPermissions = {
   patientProfile: {
     editableFields: new Set<keyof Patient>([
-      'diagnosis', 'stage', 'cancerType', 
-      'allergies', 'currentMedications', 'emergencyContacts', 
-      'operations', 'treatmentSummary', 'careTeam'
+      'photo', 'allergies', 'currentMedications', 'emergencyContacts'
     ]),
   },
-  notes: { create: true, read: true, update: true, delete: false, scope: 'all' },
-  documents: { create: true, read: true, update: true, delete: false, scope: 'all' },
+  notes: { create: true, read: true, update: true, delete: false, scope: 'own' },
+  documents: { create: true, read: true, update: false, delete: false, scope: 'all' },
 };
 
+// Puedes definir perfiles similares para 'guardian' y 'patient' si es necesario.
 export const GUARDIAN_PERMISSIONS: AppPermissions = {
-    patientProfile: {
-    editableFields: new Set<keyof Patient>([
-      'diagnosis', 'stage', 'cancerType', 
-      'allergies', 'currentMedications', 'emergencyContacts', 
-      'operations', 'treatmentSummary', 'careTeam'
-    ]),
-  },
-  notes: { create: true, read: true, update: true, delete: true, scope: 'own' },
-  documents: { create: true, read: true, update: true, delete: true, scope: 'own' },
-};
-
-export const PATIENT_PERMISSIONS: AppPermissions = {
-    patientProfile: {
-    editableFields: new Set<keyof Patient>([
-      'photo', 'name', 'diagnosis', 'stage', 'cancerType', 
-      'allergies', 'currentMedications', 'emergencyContacts', 
-      'operations', 'treatmentSummary', 'careTeam'
-    ]),
-  },
-  notes: { create: true, read: true, update: true, delete: true, scope: 'own' },
-  documents: { create: true, read: true, update: true, delete: true, scope: 'own' },
+  notes: { read: true, scope: 'all' },
+  documents: { read: true, scope: 'all' },
 };
 
 // --- LÓGICA DE VERIFICACIÓN DE PERMISOS (EJEMPLO DE BACKEND) ---
@@ -274,44 +226,24 @@ const PERMISSIONS_BY_ROLE: Record<UserRole, AppPermissions> = {
   doctor: DOCTOR_PERMISSIONS,
   nurse: NURSE_PERMISSIONS,
   guardian: GUARDIAN_PERMISSIONS,
-  patient: PATIENT_PERMISSIONS, // Un paciente no tiene permisos sobre otros, sino sobre sí mismo.
+  patient: {}, // Un paciente no tiene permisos sobre otros, sino sobre sí mismo.
 };
 
-/**
- * Verifica si un usuario puede realizar una acción sobre un recurso específico (nota o documento).
- * @param user El usuario que realiza la acción.
- * @param action La acción a realizar ('create', 'read', 'update', 'delete').
- * @param resource El recurso sobre el que se actúa (una nota o un documento).
- * @returns true si el usuario tiene permiso.
- */
-export function canUserModifyResource(
-  user: User,
-  action: 'update' | 'delete',
-  resource: PatientNote | PatientDocument
+export function canUserPerformAction(
+  user: User, 
+  action: 'create' | 'read' | 'update' | 'delete',
+  resource: 'notes' | 'documents'
 ): boolean {
   const permissions = PERMISSIONS_BY_ROLE[user.role];
-  
-  // Determina si estamos trabajando con notas o documentos
-  const resourceType = 'content' in resource ? 'notes' : 'documents';
-  const resourcePermissions = permissions[resourceType];
-  
-  // 1. ¿El rol tiene permiso para esta acción?
-  if (!resourcePermissions?.[action]) {
+  const resourcePermissions = permissions[resource];
+
+  if (!resourcePermissions || !resourcePermissions[action]) {
     return false;
   }
   
-  // 2. ¿Cuál es el alcance del permiso?
-  const scope = resourcePermissions.scope;
-
-  if (scope === 'all') {
-    return true; // Si el scope es 'all', siempre tiene permiso.
-  }
-
-  if (scope === 'own') {
-    // Si el scope es 'own', solo tiene permiso si es el autor del recurso.
-    const authorId = 'authorId' in resource ? resource.authorId : resource.uploaderId;
-    return user.id === authorId;
-  }
-
-  return false;
+  // Aquí se podría añadir lógica más compleja, como verificar el 'scope'.
+  // Por ejemplo, para la acción 'delete', si es una enfermera,
+  // se necesitaría verificar que la nota le pertenece (scope: 'own').
+  
+  return true;
 }

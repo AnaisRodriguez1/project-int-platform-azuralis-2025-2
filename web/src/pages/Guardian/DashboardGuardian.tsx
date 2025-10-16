@@ -6,8 +6,8 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { guardianTabs } from "@/common/config/navigationTabs";
 import { PatientSelector } from "@/components/PatientSelector";
 import { usePatientData } from "@/hooks/usePatientData";
-import { getPatientsByGuardian } from "@/services/mockApi";
-import type { GuardianUser } from "@/types/medical";
+import { getPatientsByUserId } from "@/services/mockApi";
+import type { GuardianUser, Patient } from "@/types/medical";
 
 export function DashboardGuardian() {
     const { user, logout } = useAuth();
@@ -20,10 +20,10 @@ export function DashboardGuardian() {
         if (user?.role === 'guardian') {
             const guardianUser = user as GuardianUser;
             // Obtener pacientes a cargo del guardian
-            const assignedPatients = getPatientsByGuardian(guardianUser.id);
+            const assignedPatients = getPatientsByUserId(guardianUser.id);
             
             // Mapear a formato esperado por PatientSelector
-            return assignedPatients.map(patient => ({
+            return assignedPatients.map((patient: Patient) => ({
                 patientId: patient.id,
                 name: patient.name,
                 cancerType: patient.cancerType

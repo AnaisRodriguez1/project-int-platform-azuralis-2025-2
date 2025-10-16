@@ -10,6 +10,7 @@ import { CancerRibbon } from "@/components/CancerRibbon";
 import LogoUniversidad from "@/assets/icons/logo_ucn.svg?react";
 import {
   validateRegistrationForm,
+  formatRUT,
   ERROR_MESSAGES
 } from "@/common/helpers/ValidateForm";
 import type {
@@ -23,6 +24,7 @@ export function RegisterScreen() {
   const [formData, setFormData] = useState<RegisterFormData>({
     name: "",
     email: "",
+    rut:"",
     password: "",
     confirmPassword: "",
     role: "patient"
@@ -30,7 +32,10 @@ export function RegisterScreen() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const handleInputChange = (field: keyof RegisterFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Format RUT automatically as user types
+    const processedValue = field === 'rut' ? formatRUT(value) : value;
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
     // Clear error when user starts typing
     if (fieldErrors[field]) {
       setFieldErrors(prev => {
@@ -110,6 +115,23 @@ export function RegisterScreen() {
               />
               {fieldErrors.name && (
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.name}</p>
+              )}
+            </div>
+
+            {/* RUT Field */}
+            <div>
+              <Label htmlFor="rut">RUT</Label>
+              <Input
+                id="rut"
+                type="text"
+                value={formData.rut}
+                onChange={(e) => handleInputChange("rut", e.target.value)}
+                placeholder="12345678-9"
+                maxLength={10}
+                className={fieldErrors.rut ? "border-red-500" : ""}
+              />
+              {fieldErrors.rut && (
+                <p className="text-red-500 text-sm mt-1">{fieldErrors.rut}</p>
               )}
             </div>
 

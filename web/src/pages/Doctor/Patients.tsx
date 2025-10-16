@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getPatientsByDoctor } from '@/services/mockApi';
+import { getPatientsByUserId } from '@/services/mockApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,7 +17,7 @@ import {
   Activity,
   Scissors
 } from 'lucide-react';
-import type { DoctorUser } from '@/types/medical';
+import type { Patient } from '@/types/medical';
 import { cancerColors } from '@/types/medical';
 
 export function PatientsDoctor() {
@@ -28,22 +28,32 @@ export function PatientsDoctor() {
   // Obtener pacientes del doctor
   const patients = useMemo(() => {
     if (user?.role === 'doctor') {
-      const doctorUser = user as DoctorUser;
-      return getPatientsByDoctor(doctorUser.name);
+      return getPatientsByUserId(user.id);
     }
     return [];
   }, [user]);
 
   // Filtrar pacientes por búsqueda
   const filteredPatients = useMemo(() => {
-    return patients.filter(patient => {
-      const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           patient.rut.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           patient.cancerType.toLowerCase().includes(searchTerm.toLowerCase());
+    return patients.filter((patient: Patient) => {
+      // Búsqueda por nombre, RUT o tipo de cáncer
+      const searchLower = searchTerm.toLowerCase();
+      const cancerColor = cancerColors[patient.cancerType];
+      
+      const matchesSearch = searchTerm === '' ||
+                           patient.name.toLowerCase().includes(searchLower) ||
+                           patient.rut.toLowerCase().includes(searchLower) ||
+                           patient.cancerType.toLowerCase().includes(searchLower) ||
+                           cancerColor.name.toLowerCase().includes(searchLower);
+      
+      // Filtrar por estadio
+      const stage = patient.stage.toLowerCase();
+      const isEarlyStage = stage.includes('i') && !stage.includes('iii') && !stage.includes('iv');
+      const isLateStage = stage.includes('iii') || stage.includes('iv');
       
       const matchesFilter = selectedFilter === 'todos' || 
-                           (selectedFilter === 'estadio1-2' && (patient.stage.includes('I') || patient.stage.includes('II'))) ||
-                           (selectedFilter === 'estadio3-4' && (patient.stage.includes('III') || patient.stage.includes('IV')));
+                           (selectedFilter === 'estadio1-2' && isEarlyStage) ||
+                           (selectedFilter === 'estadio3-4' && isLateStage);
       
       return matchesSearch && matchesFilter;
     });
@@ -51,14 +61,21 @@ export function PatientsDoctor() {
 
   // Obtener estadísticas
   const stats = useMemo(() => {
-    const estadios12 = patients.filter(p => p.stage.includes('I') || p.stage.includes('II')).length;
-    const estadios34 = patients.filter(p => p.stage.includes('III') || p.stage.includes('IV')).length;
+    const estadios12 = patients.filter((p: Patient) => {
+      const stage = p.stage.toLowerCase();
+      return stage.includes('i') && !stage.includes('iii') && !stage.includes('iv');
+    }).length;
+    
+    const estadios34 = patients.filter((p: Patient) => {
+      const stage = p.stage.toLowerCase();
+      return stage.includes('iii') || stage.includes('iv');
+    }).length;
     
     return {
       total: patients.length,
       estadios12,
       estadios34,
-      conAlergias: patients.filter(p => p.allergies && p.allergies.length > 0).length
+      conAlergias: patients.filter((p: Patient) => p.allergies && p.allergies.length > 0).length
     };
   }, [patients]);
 
@@ -171,7 +188,7 @@ export function PatientsDoctor() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPatients.map((patient) => {
+          {filteredPatients.map((patient: Patient) => {
             const cancerColor = cancerColors[patient.cancerType];
             
             return (
@@ -185,7 +202,7 @@ export function PatientsDoctor() {
                           style={{ backgroundColor: cancerColor.color }}
                           className="text-white font-semibold"
                         >
-                          {patient.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          {patient.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -221,13 +238,21 @@ export function PatientsDoctor() {
                     <div className="flex items-center space-x-2">
                       <Activity className="w-4 h-4 text-gray-500" />
                       <span className="text-sm font-medium text-gray-700">
-                        Estadio {patient.stage}
+                        {patient.stage}
                       </span>
                     </div>
                     <Badge 
-                      variant={patient.stage.includes('I') || patient.stage.includes('II') ? 'default' : 'secondary'}
+                      variant={(() => {
+                        const stage = patient.stage.toLowerCase();
+                        const isEarly = stage.includes('i') && !stage.includes('iii') && !stage.includes('iv');
+                        return isEarly ? 'default' : 'secondary';
+                      })()}
                       style={{
-                        backgroundColor: patient.stage.includes('I') || patient.stage.includes('II') ? '#10b981' : '#f97316'
+                        backgroundColor: (() => {
+                          const stage = patient.stage.toLowerCase();
+                          const isEarly = stage.includes('i') && !stage.includes('iii') && !stage.includes('iv');
+                          return isEarly ? '#10b981' : '#f97316';
+                        })()
                       }}
                     >
                       {patient.stage}
@@ -278,7 +303,7 @@ export function PatientsDoctor() {
                       variant="outline" 
                       size="sm" 
                       className="flex-1"
-                      onClick={() => alert(`Contactos de emergencia:\n${patient.emergencyContacts.map(c => `${c.name} (${c.relationship}): ${c.phone}`).join('\n')}`)}
+                      onClick={() => alert(`Contactos de emergencia:\n${patient.emergencyContacts.map((c: any) => `${c.name} (${c.relationship}): ${c.phone}`).join('\n')}`)}
                     >
                       <AlertCircle className="w-4 h-4 mr-1" />
                       Contactos

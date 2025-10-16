@@ -6,8 +6,8 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { nurseTabs } from "@/common/config/navigationTabs";
 import { PatientSelector } from "@/components/PatientSelector";
 import { usePatientData } from "@/hooks/usePatientData";
-import { getMockPatients } from "@/services/mockApi";
-import { nurseColor } from "@/types/medical";
+import { getPatientsByUserId, MOCK_PATIENTS } from "../../services/mockApi";
+import { nurseColor, type Patient } from "@/types/medical";
 
 export function DashboardNurse() {
     const { user, logout } = useAuth();
@@ -15,14 +15,24 @@ export function DashboardNurse() {
     const [activeTab, setActiveTab] = useState('home');
     const { cancerColor, patientName, patientId } = usePatientData();
 
-    // Obtener todos los pacientes desde mockApi
-    // Las enfermeras pueden ver todos los pacientes del hospital
+    // Obtener pacientes asignados a la enfermera desde el careTeam
+    // Si no tiene pacientes asignados específicamente, puede ver todos los pacientes del hospital
     const mockPatients = useMemo(() => {
         if (user?.role === 'nurse') {
-            const allPatients = getMockPatients();
+            // Obtener pacientes donde esta enfermera está en el careTeam
+            const assignedPatients = getPatientsByUserId(user.id);
             
-            // Mapear a formato esperado por PatientSelector
-            return allPatients.map(patient => ({
+            // Si tiene pacientes asignados, mostrar solo esos
+            if (assignedPatients.length > 0) {
+                return assignedPatients.map((patient: Patient) => ({
+                    patientId: patient.id,
+                    name: patient.name,
+                    cancerType: patient.cancerType
+                }));
+            }
+            
+            // Si no tiene pacientes asignados, puede ver todos (acceso de emergencia)
+            return MOCK_PATIENTS.map((patient: Patient) => ({
                 patientId: patient.id,
                 name: patient.name,
                 cancerType: patient.cancerType
