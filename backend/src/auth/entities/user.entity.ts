@@ -17,6 +17,9 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ unique: true })
+  rut: string;
+
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -24,12 +27,38 @@ export class User {
   })
   role: UserRole;
 
-  @Column({ nullable: true })
-  profilePhoto?: string;
+  // ---- CAMPOS ESPECÍFICOS POR ROL ----
 
-  @OneToMany(() => PatientNote, (note) => note.author)
+  // 🧑‍⚕️ DOCTOR/NURSE
+  @Column({ nullable: true })
+  specialization?: string; // doctor
+
+  @Column({ nullable: true })
+  department?: string; // nurse
+
+  @Column({ nullable: true })
+  license?: string; // ambos
+
+  @Column('text', { array: true, nullable: true })
+  assignedPatients?: string[]; // IDs de pacientes asignados
+
+  // 🧑‍🤝‍🧑 GUARDIAN
+  @Column('text', { array: true, nullable: true })
+  patientIds?: string[]; // IDs de pacientes a cargo
+
+  // 👩‍⚕️ CLÍNICO
+  @Column('jsonb', { nullable: true })
+  scanHistory?: { patientId: string; scannedAt: Date }[];
+
+  // 🧑 PACIENTE
+  @Column({ nullable: true })
+  patientId?: string; // vínculo directo con tabla patients
+}
+
+
+/*  @OneToMany(() => PatientNote, (note) => note.author)
   notesAuthored: PatientNote[];
 
   @OneToMany(() => PatientDocument, (doc) => doc.uploader)
   documentsUploaded: PatientDocument[];
-}
+} */
