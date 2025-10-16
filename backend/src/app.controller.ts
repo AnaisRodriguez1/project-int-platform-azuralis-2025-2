@@ -18,7 +18,7 @@ export class AuthController {
   }
 
   @Get('profile/:id')
-  getProfile(@Param('id') id: number) {
+  getProfile(@Param('id') id: string) {
     return this.authService.getProfile(id);
   }
 }

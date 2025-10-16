@@ -1,12 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { PatientNote } from '../../patients/entities/patient-note.entity';
+import { PatientDocument } from '../../patients/entities/patient-document.entity';
+import { UserRole } from '../../shared/enums/user-role.enum';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
-  nombre: string;
+  name: string;
 
   @Column({ unique: true })
   email: string;
@@ -14,9 +17,19 @@ export class User {
   @Column()
   password: string;
 
-  @Column({ default: 'PACIENTE' })
-  rol: string;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.PATIENT,
+  })
+  role: UserRole;
 
-  @Column({ default: () => 'CURRENT_TIMESTAMP' })
-  creado_en: Date;
+  @Column({ nullable: true })
+  profilePhoto?: string;
+
+  @OneToMany(() => PatientNote, (note) => note.author)
+  notesAuthored: PatientNote[];
+
+  @OneToMany(() => PatientDocument, (doc) => doc.uploader)
+  documentsUploaded: PatientDocument[];
 }

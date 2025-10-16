@@ -7,8 +7,8 @@ export class AuthController {
 
   @Post('register')
   register(@Body() body: any) {
-    const { nombre, email, password, rol } = body;
-    return this.authService.register(nombre, email, password, rol);
+    const { name, email, password, role } = body;
+    return this.authService.register(name, email, password, role);
   }
 
   @Post('login')
@@ -18,7 +18,8 @@ export class AuthController {
   }
 
   @Get('profile/:id')
-  getProfile(@Param('id') id: number) {
+  getProfile(@Param('id') id: string) {
     return this.authService.getProfile(id);
   }
+
 }
