@@ -29,10 +29,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Vite cache and temp files
-.vite/
-*.vite
-
 # Environment variables
 .env
 .env.local
@@ -40,3 +36,7 @@ dist-ssr
 
 # OS files
 Thumbs.db
+
+# Vite cache and temp files
+.vite/
+*.vite

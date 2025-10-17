@@ -1,10 +1,13 @@
 import { AuthProvider } from "./context/AuthContext";
-import { AppRouter } from "./AppRouter";
+import { PatientProvider } from "./context/PatientContext";
+import { AppRouter } from "./context/AppRouter";
 
 function App() {
   return (
     <AuthProvider>
-      <AppRouter />
+      <PatientProvider>
+        <AppRouter />
+      </PatientProvider>
     </AuthProvider>
   );
 }
