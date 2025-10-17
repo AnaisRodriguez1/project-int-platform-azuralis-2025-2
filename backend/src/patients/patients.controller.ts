@@ -6,7 +6,9 @@ import {
   Param,
   Delete,
   Put,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { PatientsService } from './patients.service';
 import { Patient } from './entities/patient.entity';
 
@@ -27,6 +29,20 @@ export class PatientsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.patientsService.findOne(id);
+  }
+
+  @Get(':id/qr')
+  async getQRCode(@Param('id') id: string, @Res() res: Response) {
+    const qrCodeImage = await this.patientsService.generateQRCode(id);
+    
+    // Convertir Data URL a Buffer
+    const base64Data = qrCodeImage.replace(/^data:image\/png;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+    
+    // Devolver como imagen PNG
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', imageBuffer.length);
+    res.send(imageBuffer);
   }
 
   @Put(':id')

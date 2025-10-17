@@ -541,9 +541,15 @@ export const mockApiService = {
     /**
      * Mock de verificación de estado de autenticación
      */
-    checkAuthStatus: async (token: string) => {
+    checkAuthStatus: async () => {
         // Simular delay de red
         await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Obtener token de localStorage
+        const token = localStorage.getItem("token");
+        if (!token) {
+            throw new Error('Token no encontrado');
+        }
         
         // Extraer ID del token mock
         const match = token.match(/mock-token-([^-]+)-/);

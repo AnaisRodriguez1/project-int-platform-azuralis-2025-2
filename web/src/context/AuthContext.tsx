@@ -4,7 +4,7 @@ import type { User } from "@/types/medical";
 import { createContext, useContext, useEffect, useState } from "react";
 
 // Toggle para usar API real o mock
-const USE_MOCK_API = true; // Cambia a false cuando el backend esté listo
+const USE_MOCK_API = false; // Cambia a true para usar datos mock
 const authApi = USE_MOCK_API ? mockApiService : apiService;
 
 interface AuthContextType {
@@ -28,57 +28,66 @@ const AuthProvider = ({children}: {children:React.ReactNode}) => {
     }, [])
 
     const checkAuthStatus = async () => {
+        setIsLoading(true)
         try {
             const token = localStorage.getItem("token")
             if (token) {
-                const userData = await authApi.checkAuthStatus(token)
+                const userData = await authApi.checkAuthStatus()
                 setUser(userData)
             }
         } catch (error) {
-        // Token inválido, limpiar
-        localStorage.removeItem("token")
+            // Token inválido, limpiar
+            localStorage.removeItem("token")
+            localStorage.removeItem("user")
         } finally {
             setIsLoading(false)
         }
     }
 
     const login = async (email: string, password: string) => {
-
+        setIsLoading(true)
         try {
             const data = await authApi.login(email, password)
-            //Guardamos el token
-            localStorage.setItem("token", data.token)
-            //Obtener los datos completos del usuario
-            const userData = data.user || await authApi.checkAuthStatus(data.token)
+            // Guardamos el token (puede venir como access_token o token)
+            const token = 'access_token' in data ? data.access_token : data.token;
+            localStorage.setItem("token", token)
+            // Obtener los datos completos del usuario
+            const userData = await authApi.checkAuthStatus()
             setUser(userData)
-            //Guardar usuario en localStorage para acceso inmediato
+            // Guardar usuario en localStorage para acceso inmediato
             localStorage.setItem("user", JSON.stringify(userData))
             return userData
         } catch (error) {
             throw error
+        } finally {
+            setIsLoading(false)
         }
     }
 
 
     const register = async (userData: any) => {
+        setIsLoading(true)
         try {
-            //Preparación del registroData acordado para el el CreateUserDto
+            // Preparación del registroData acordado para el CreateUserDto
             const registrationData = {
                 email: userData.email,
-                password: userData,
+                password: userData.password,
                 name: userData.name,
+                rut: userData.rut,
                 role: userData.role
             }
 
             const registrationResponse = await authApi.register(registrationData)
 
-            //Hace login automático después del registro
+            // Hace login automático después del registro
             await login(userData.email, userData.password)
 
-            //Retona la respuesta del registro para procesos adicionales
-            return registrationResponse;
+            // Retorna la respuesta del registro para procesos adicionales
+            return registrationResponse
         } catch (error) {
             throw error
+        } finally {
+            setIsLoading(false)
         }
     }
 

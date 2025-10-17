@@ -21,8 +21,8 @@ export class User {
   rut: string;
 
   @Column({
-    type: 'enum',
-    enum: UserRole,
+    type: 'varchar',
+    length: 50,
     default: UserRole.PATIENT,
   })
   role: UserRole;
@@ -39,16 +39,16 @@ export class User {
   @Column({ nullable: true })
   license?: string; // ambos
 
-  @Column('text', { array: true, nullable: true })
-  assignedPatients?: string[]; // IDs de pacientes asignados
+  @Column('text', { nullable: true })
+  assignedPatients?: string; // JSON string de IDs de pacientes asignados
 
   // 🧑‍🤝‍🧑 GUARDIAN
-  @Column('text', { array: true, nullable: true })
-  patientIds?: string[]; // IDs de pacientes a cargo
+  @Column('text', { nullable: true })
+  patientIds?: string; // JSON string de IDs de pacientes a cargo
 
   // 👩‍⚕️ CLÍNICO
-  @Column('jsonb', { nullable: true })
-  scanHistory?: { patientId: string; scannedAt: Date }[];
+  @Column('text', { nullable: true })
+  scanHistory?: string; // JSON string de { patientId: string; scannedAt: Date }[]
 
   // 🧑 PACIENTE
   @Column({ nullable: true })
