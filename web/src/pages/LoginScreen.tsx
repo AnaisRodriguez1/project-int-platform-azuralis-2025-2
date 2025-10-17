@@ -108,61 +108,77 @@ export function LoginScreen() {
                         <CardDescription>Accede a tu información médica de forma segura.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {/*Correo Electrónico*/}
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Correo Electrónico</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="ejemplo@ucn.cl"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                        {/*Contraseña*/}
-                        <div className="space-y-2 pt-4">
-                            <Label htmlFor="password">Contraseña</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                placeholder="••••••••"
-                                onChange={(e) => setPassword(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                            />
-                        </div>
-                        {/*Mensaje de error*/}
-                        {error && (
-                            <div className="text-red-600 text-sm pt-2 text-center">
-                                {error}
+                        <form onSubmit={handleLogin}>
+                            {/*Correo Electrónico*/}
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Correo Electrónico</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="ejemplo@ucn.cl"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        // Limpiar error al escribir
+                                        if (error) setError('');
+                                    }}
+                                    disabled={isLoading}
+                                    className={error && !password ? 'border-red-300' : ''}
+                                />
                             </div>
-                        )}
-                        {/*Botón para iniciar sesión*/}
-                        <div className="space-y-2 pt-4">
-                            <Button
-                                onClick={handleLogin}
-                                disabled={isLoading}
-                                variant="outline"
-                                className="w-full bg-[#fa8fb5] hover:bg-[#dd6d94]"
-                            >
-                                {isLoading
-                                    ? "Iniciando sesión..."
-                                    : "Iniciar Sesión"}
-                            </Button>
-                        </div>
-                        {/* Enlace a registro */}
-                        <div className="text-center pt-4">
-                            <p className="text-sm text-gray-600">
-                                ¿No tienes cuenta?{" "}
-                                <button
-                                    type="button"
-                                    onClick={() => navigate("/register")}
-                                    className="text-[#fa8fb5] hover:text-[#dd6d94] font-medium hover:underline transition-colors"
+                            {/*Contraseña*/}
+                            <div className="space-y-2 pt-4">
+                                <Label htmlFor="password">Contraseña</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={password}
+                                    placeholder="••••••••"
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        // Limpiar error al escribir
+                                        if (error) setError('');
+                                    }}
+                                    disabled={isLoading}
+                                    className={error && email ? 'border-red-300' : ''}
+                                />
+                            </div>
+                            {/*Mensaje de error*/}
+                            {error && (
+                                <Alert className="mt-4 bg-red-50 border-red-200">
+                                    <AlertDescription className="text-red-800 text-sm">
+                                        ⚠️ {error}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            {/*Botón para iniciar sesión*/}
+                            <div className="space-y-2 pt-4">
+                                <Button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    variant="outline"
+                                    className="w-full bg-[#fa8fb5] hover:bg-[#dd6d94]"
                                 >
-                                    Regístrate aquí
-                                </button>
-                            </p>
-                        </div>
+                                    {isLoading
+                                        ? "Iniciando sesión..."
+                                        : "Iniciar Sesión"}
+                                </Button>
+                            </div>
+                            {/* Enlace a registro */}
+                            <div className="text-center pt-4">
+                                <p className="text-sm text-gray-600">
+                                    ¿No tienes cuenta?{" "}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/register")}
+                                        className="text-[#fa8fb5] hover:text-[#dd6d94] font-medium hover:underline transition-colors"
+                                        disabled={isLoading}
+                                    >
+                                        Regístrate aquí
+                                    </button>
+                                </p>
+                            </div>
+                        </form>
                     </CardContent>
                 </Card>
 
