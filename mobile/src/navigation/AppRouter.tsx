@@ -6,6 +6,7 @@ import { View, ActivityIndicator } from 'react-native';
 
 // Pantallas
 import LoginScreen from '../components/LoginScreen';
+import RegisterScreen from '../components/RegisterScreen';
 import DashboardPatient from '../components/DashboardPatient';
 import DashboardDoctor from '../components/DashboardDoctor';
 import DashboardGuardian from '../components/DashboardGuardian';
@@ -16,7 +17,7 @@ import type { UserRole } from '../types/medical';
 
 const Stack = createNativeStackNavigator();
 
-// Helper: obtener ruta según rol
+// Helper: obtener nombre de ruta según rol
 const getDashboardRoute = (role: UserRole) => {
   switch (role) {
     case 'doctor':
@@ -51,7 +52,7 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
-// Componente que decide qué pantalla mostrar al inicio
+// Decide pantalla inicial según estado de sesión
 function HomePage() {
   const { isAuthenticated, user, isLoading } = useAuth();
 
@@ -63,19 +64,21 @@ function HomePage() {
     );
   }
 
+  // Si está autenticado, redirige al dashboard correcto
   if (isAuthenticated && user) {
-    const dashboard = getDashboardRoute(user.role);
+    const DashboardComponent = resolveDashboard(user.role);
     return (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name={dashboard} component={resolveDashboard(user.role)} />
-      </Stack.Navigator>
+      <ProtectedRoute>
+        <DashboardComponent />
+      </ProtectedRoute>
     );
   }
 
+  // Si no hay sesión activa, muestra login
   return <LoginScreen />;
 }
 
-// Helper: retorna el componente correcto según el rol
+// Devuelve el componente correspondiente según el rol
 function resolveDashboard(role: UserRole) {
   switch (role) {
     case 'doctor':
@@ -91,7 +94,7 @@ function resolveDashboard(role: UserRole) {
   }
 }
 
-// Router principal
+// 🌐 Router principal
 export function AppRouter() {
   return (
     <NavigationContainer>
@@ -99,42 +102,43 @@ export function AppRouter() {
         initialRouteName="HomePage"
         screenOptions={{ headerShown: false }}
       >
-        {/* Ruta inicial */}
+        {/* Rutas públicas */}
         <Stack.Screen name="HomePage" component={HomePage} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
 
-        {/* Rutas protegidas */}
-        <Stack.Screen
-          name="DashboardDoctor"
-          children={() => (
+        {/* Dashboards protegidos */}
+        <Stack.Screen name="DashboardDoctor">
+          {() => (
             <ProtectedRoute>
               <DashboardDoctor />
             </ProtectedRoute>
           )}
-        />
-        <Stack.Screen
-          name="DashboardPatient"
-          children={() => (
+        </Stack.Screen>
+
+        <Stack.Screen name="DashboardPatient">
+          {() => (
             <ProtectedRoute>
               <DashboardPatient />
             </ProtectedRoute>
           )}
-        />
-        <Stack.Screen
-          name="DashboardGuardian"
-          children={() => (
+        </Stack.Screen>
+
+        <Stack.Screen name="DashboardGuardian">
+          {() => (
             <ProtectedRoute>
               <DashboardGuardian />
             </ProtectedRoute>
           )}
-        />
-        <Stack.Screen
-          name="DashboardNurse"
-          children={() => (
+        </Stack.Screen>
+
+        <Stack.Screen name="DashboardNurse">
+          {() => (
             <ProtectedRoute>
               <DashboardNurse />
             </ProtectedRoute>
           )}
-        />
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

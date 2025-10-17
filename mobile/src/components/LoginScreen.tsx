@@ -85,6 +85,12 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>Iniciar Sesión</Text>
           )}
         </TouchableOpacity>
+        
+        {/* Enlace a Registro */}
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
+        </TouchableOpacity>
+
       </View>
 
       {/* Usuarios de prueba */}
@@ -117,6 +123,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 15 },
   button: { backgroundColor: '#fa8fb5', padding: 14, borderRadius: 8, alignItems: 'center' },
+  link: { textAlign: 'center', color: '#fa8fb5', marginTop: 15, fontWeight: '500',},
   buttonText: { color: '#fff', fontWeight: 'bold' },
   error: { color: 'red', textAlign: 'center', marginBottom: 10 },
   mockBox: { marginTop: 20, backgroundColor: '#e8f0ff', padding: 15, borderRadius: 10, width: '100%' },
