@@ -67,6 +67,14 @@ export const apiService = {
     return data
   },
 
+  // ==================== USERS ====================
+  users: {
+    update: async (userId: string, userData: Partial<any>): Promise<any> => {
+      const { data } = await api.put(`/users/${userId}`, userData)
+      return data
+    },
+  },
+
   // ==================== PATIENTS ====================
   patients: {
     create: async (patientData: Partial<Patient>): Promise<Patient> => {
@@ -112,6 +120,11 @@ export const apiService = {
 
     getOne: async (id: string): Promise<PatientNote> => {
       const { data } = await api.get(`/patient-notes/${id}`)
+      return data
+    },
+
+    update: async (id: string, noteData: Partial<PatientNote>): Promise<PatientNote> => {
+      const { data } = await api.put(`/patient-notes/${id}`, noteData)
       return data
     },
 

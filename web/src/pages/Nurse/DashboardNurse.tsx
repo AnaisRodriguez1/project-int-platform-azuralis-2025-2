@@ -1,45 +1,87 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { nurseTabs } from "@/common/config/navigationTabs";
 import { PatientSelector } from "@/components/PatientSelector";
 import { usePatientData } from "@/hooks/usePatientData";
-import { getPatientsByUserId, MOCK_PATIENTS } from "../../services/mockApi";
-import { nurseColor, type Patient } from "@/types/medical";
+import { apiService } from "@/services/api";
+import { nurseColor } from "@/types/medical";
+import { CompleteNurseProfile } from "@/components/CompleteNurseProfile";
 
 export function DashboardNurse() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('home');
     const { cancerColor, patientName, patientId } = usePatientData();
+    const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
+    const [patients, setPatients] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Verificar si la enfermera necesita completar su perfil
+    useEffect(() => {
+        if (user && user.role === 'nurse') {
+            const nurseUser = user as any;
+            if (!nurseUser.department || !nurseUser.license) {
+                setNeedsProfileCompletion(true);
+            }
+        }
+    }, [user]);
+
+    // Si necesita completar el perfil, mostrar el formulario
+    if (needsProfileCompletion) {
+        return (
+            <CompleteNurseProfile
+                onComplete={() => {
+                    setNeedsProfileCompletion(false);
+                    window.location.reload();
+                }}
+            />
+        );
+    }
+
+    // Cargar pacientes desde la API real
+    useEffect(() => {
+        const loadPatients = async () => {
+            if (!user) return;
+            
+            try {
+                setIsLoading(true);
+                const allPatients = await apiService.patients.getAll();
+                // Filtrar pacientes que tienen a la enfermera en su careTeam
+                const myPatients = allPatients.filter((patient: any) => 
+                    patient.careTeam?.some((member: any) => member.userId === user.id)
+                );
+                setPatients(myPatients);
+            } catch (error) {
+                console.error('Error al cargar pacientes:', error);
+                setPatients([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadPatients();
+    }, [user]);
 
     // Obtener pacientes asignados a la enfermera desde el careTeam
     // Si no tiene pacientes asignados específicamente, puede ver todos los pacientes del hospital
     const mockPatients = useMemo(() => {
-        if (user?.role === 'nurse') {
-            // Obtener pacientes donde esta enfermera está en el careTeam
-            const assignedPatients = getPatientsByUserId(user.id);
-            
-            // Si tiene pacientes asignados, mostrar solo esos
-            if (assignedPatients.length > 0) {
-                return assignedPatients.map((patient: Patient) => ({
-                    patientId: patient.id,
-                    name: patient.name,
-                    cancerType: patient.cancerType
-                }));
-            }
-            
-            // Si no tiene pacientes asignados, puede ver todos (acceso de emergencia)
-            return MOCK_PATIENTS.map((patient: Patient) => ({
-                patientId: patient.id,
-                name: patient.name,
-                cancerType: patient.cancerType
-            }));
-        }
-        return [];
-    }, [user]);
+        return patients.map((patient: any) => ({
+            patientId: patient.id,
+            name: patient.name,
+            cancerType: patient.cancerType
+        }));
+    }, [patients]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p className="text-gray-600">Cargando...</p>
+            </div>
+        );
+    }
 
     const handleLogout = () => {
         logout();

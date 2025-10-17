@@ -21,7 +21,7 @@ export const ERROR_MESSAGES = {
   REQUIRED_EMAIL: "El email es obligatorio.",
   INVALID_EMAIL: "El email no es válido.",
   REQUIRED_RUT: "El RUT es obligatorio.",
-  INVALID_RUT: "El RUT no es válido. Formato: 12345678-9",
+  INVALID_RUT: "El RUT no es válido. Formato: 12.345.678-9",
   REQUIRED_ROLE: "El rol es obligatorio.",
   REQUIRED_PASSWORD: "La contraseña es obligatoria.",
   INVALID_PASSWORD: `La contraseña debe tener entre ${PASSWORD_MIN_LENGTH} y ${PASSWORD_MAX_LENGTH} caracteres, incluir mayúscula, minúscula y número.`,
@@ -91,15 +91,16 @@ export const validateRUT = (rut: string): boolean => {
 };
 
 /**
- * Formats RUT string to standard format (12345678-9)
+ * Formats RUT string to standard Chilean format (12.345.678-9)
  * @param rut - RUT string to format
- * @returns Formatted RUT string
+ * @returns Formatted RUT string with dots and hyphen
  */
 export const formatRUT = (rut: string): string => {
   // Remove all non-alphanumeric characters except K
   const cleaned = rut.replace(/[^\dkK]/g, '');
   
   if (cleaned.length === 0) return '';
+  if (cleaned.length === 1) return cleaned;
   
   // Split into body and check digit
   const body = cleaned.slice(0, -1);
@@ -107,7 +108,10 @@ export const formatRUT = (rut: string): string => {
   
   if (body.length === 0) return checkDigit;
   
-  return `${body}-${checkDigit}`;
+  // Add dots to the body (format as thousands)
+  const formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  
+  return `${formattedBody}-${checkDigit}`;
 };
 
 /**

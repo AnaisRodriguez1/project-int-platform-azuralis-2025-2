@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Plus, Calendar, Edit3, Trash2, StickyNote } from 'lucide-react';
-import { getNotesByPatientId, createNote, updateNote as updateNoteApi, deleteNote as deleteNoteApi } from '@/services/mockApi';
+import { apiService } from '@/services/api';
 import type { PatientNote, PatientUser } from '@/types/medical';
 
 interface NotesPatientProps {
@@ -35,10 +35,15 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
     }
   }, [patientId]);
 
-  const loadNotes = () => {
+  const loadNotes = async () => {
     if (patientId) {
-      const patientNotes = getNotesByPatientId(patientId);
-      setNotes(patientNotes);
+      try {
+        const allNotes = await apiService.notes.getAll();
+        const patientNotes = allNotes.filter(note => note.patientId === patientId);
+        setNotes(patientNotes);
+      } catch (error) {
+        console.error('Error loading notes:', error);
+      }
     }
   };
 
@@ -55,7 +60,7 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
 
     setIsLoading(true);
     try {
-      await createNote({
+      await apiService.notes.create({
         title: newNoteTitle,
         content: newNoteContent,
         patientId: patientId,
@@ -79,7 +84,7 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
 
     setIsLoading(true);
     try {
-      await updateNoteApi(editingNote.id, {
+      await apiService.notes.update(editingNote.id, {
         title: newNoteTitle,
         content: newNoteContent
       });
@@ -100,7 +105,7 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
 
     setIsLoading(true);
     try {
-      await deleteNoteApi(noteId);
+      await apiService.notes.delete(noteId);
       loadNotes();
     } catch (error) {
       console.error('Error al eliminar nota:', error);

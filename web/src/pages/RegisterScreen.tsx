@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CancerRibbon } from "@/components/CancerRibbon";
 import LogoUniversidad from "@/assets/icons/logo_ucn.svg?react";
 import {
   validateRegistrationForm,
-  formatRUT,
-  ERROR_MESSAGES
+  formatRUT
 } from "@/common/helpers/ValidateForm";
 import type {
   FieldErrors
@@ -20,6 +21,7 @@ import type { RegisterFormData, UserRole } from "@/types/medical";
 
 export function RegisterScreen() {
   const navigate = useNavigate();
+  const { register: registerUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<RegisterFormData>({
     name: "",
@@ -30,12 +32,14 @@ export function RegisterScreen() {
     role: "patient"
   });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleInputChange = (field: keyof RegisterFormData, value: string) => {
     // Format RUT automatically as user types
     const processedValue = field === 'rut' ? formatRUT(value) : value;
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
+    
     // Clear error when user starts typing
     if (fieldErrors[field]) {
       setFieldErrors(prev => {
@@ -44,10 +48,23 @@ export function RegisterScreen() {
         return newErrors;
       });
     }
+    
+    // Clear general error when user modifies form
+    if (fieldErrors.general) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.general;
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Clear previous messages
+    setSuccessMessage('');
+    setFieldErrors({});
 
     // Validate form
     const { isValid, errors } = validateRegistrationForm(formData);
@@ -60,14 +77,67 @@ export function RegisterScreen() {
     setIsLoading(true);
     
     try {
-      // TODO: Implement API call for registration
-      // await registerUser(formData);
-      console.log("Registration data:", formData);
+      // Call API for registration
+      await registerUser({
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        rut: formData.rut,
+        password: formData.password,
+        role: formData.role
+      });
       
-      // On success, navigate to login
-      // navigate('/login');
-    } catch (error) {
-      setFieldErrors({ general: ERROR_MESSAGES.REGISTRATION_ERROR });
+      // Show success message
+      setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo al dashboard...');
+      
+      // Wait 2 seconds then navigate to appropriate dashboard
+      setTimeout(() => {
+        // AuthContext already logs in automatically after registration
+        // The user object is already set, so we can navigate
+        navigate('/'); // Will be redirected to dashboard by ProtectedRoute
+      }, 2000);
+      
+    } catch (err: any) {
+      // Handle specific errors from backend
+      if (err.response) {
+        const status = err.response.status;
+        const message = err.response.data?.message;
+        const errorData = err.response.data;
+
+        if (status === 409 || message?.includes('already exists') || message?.includes('duplicate')) {
+          // User already exists
+          if (message?.includes('email')) {
+            setFieldErrors({ email: 'Este correo ya está registrado. ¿Quieres iniciar sesión?' });
+          } else if (message?.includes('RUT') || message?.includes('rut')) {
+            setFieldErrors({ rut: 'Este RUT ya está registrado en el sistema.' });
+          } else {
+            setFieldErrors({ general: 'Este usuario ya existe. Por favor inicia sesión o usa otros datos.' });
+          }
+        } else if (status === 400) {
+          // Validation error from backend
+          if (errorData?.errors && Array.isArray(errorData.errors)) {
+            // Map backend validation errors to form fields
+            const backendErrors: FieldErrors = {};
+            errorData.errors.forEach((error: any) => {
+              if (error.field) {
+                backendErrors[error.field] = error.message;
+              }
+            });
+            setFieldErrors(backendErrors);
+          } else {
+            setFieldErrors({ general: message || 'Datos inválidos. Por favor verifica el formulario.' });
+          }
+        } else if (status === 500) {
+          setFieldErrors({ general: 'Error en el servidor. Por favor intenta más tarde.' });
+        } else {
+          setFieldErrors({ general: message || 'Error al crear la cuenta. Por favor intenta nuevamente.' });
+        }
+      } else if (err.request) {
+        // Network error - no response from server
+        setFieldErrors({ general: 'No se pudo conectar con el servidor. Verifica tu conexión a internet.' });
+      } else {
+        // Other errors
+        setFieldErrors({ general: err.message || 'Error inesperado. Por favor intenta nuevamente.' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +182,7 @@ export function RegisterScreen() {
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Ingresa tu nombre"
                 className={fieldErrors.name ? "border-red-500" : ""}
+                disabled={isLoading}
               />
               {fieldErrors.name && (
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.name}</p>
@@ -126,9 +197,9 @@ export function RegisterScreen() {
                 type="text"
                 value={formData.rut}
                 onChange={(e) => handleInputChange("rut", e.target.value)}
-                placeholder="12345678-9"
-                maxLength={10}
+                placeholder="12.345.678-9"
                 className={fieldErrors.rut ? "border-red-500" : ""}
+                disabled={isLoading}
               />
               {fieldErrors.rut && (
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.rut}</p>
@@ -145,6 +216,7 @@ export function RegisterScreen() {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 placeholder="ejemplo@correo.com"
                 className={fieldErrors.email ? "border-red-500" : ""}
+                disabled={isLoading}
               />
               {fieldErrors.email && (
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>
@@ -161,6 +233,7 @@ export function RegisterScreen() {
                 className={`w-full px-3 py-2 border rounded-md ${
                   fieldErrors.role ? "border-red-500" : "border-gray-300"
                 }`}
+                disabled={isLoading}
               >
                 <option value="patient">Paciente</option>
                 <option value="doctor">Doctor</option>
@@ -182,6 +255,7 @@ export function RegisterScreen() {
                 onChange={(e) => handleInputChange("password", e.target.value)}
                 placeholder="Mínimo 6 caracteres"
                 className={fieldErrors.password ? "border-red-500" : ""}
+                disabled={isLoading}
               />
               {fieldErrors.password && (
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.password}</p>
@@ -198,6 +272,7 @@ export function RegisterScreen() {
                 onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                 placeholder="Repite tu contraseña"
                 className={fieldErrors.confirmPassword ? "border-red-500" : ""}
+                disabled={isLoading}
               />
               {fieldErrors.confirmPassword && (
                 <p className="text-red-500 text-sm mt-1">{fieldErrors.confirmPassword}</p>
@@ -206,9 +281,20 @@ export function RegisterScreen() {
 
             {/* General Error */}
             {fieldErrors.general && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                <p className="text-red-600 text-sm">{fieldErrors.general}</p>
-              </div>
+              <Alert className="bg-red-50 border-red-200">
+                <AlertDescription className="text-red-800 text-sm">
+                  ⚠️ {fieldErrors.general}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <Alert className="bg-green-50 border-green-200">
+                <AlertDescription className="text-green-800 text-sm">
+                  ✅ {successMessage}
+                </AlertDescription>
+              </Alert>
             )}
 
               {/* Submit Button */}
@@ -229,6 +315,7 @@ export function RegisterScreen() {
                     type="button"
                     onClick={() => navigate("/")}
                     className="text-[#fa8fb5] hover:text-[#dd6d94] font-medium hover:underline transition-colors"
+                    disabled={isLoading}
                   >
                     Inicia sesión
                   </button>
