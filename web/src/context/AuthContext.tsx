@@ -1,11 +1,6 @@
 import { apiService } from "@/services/api";
-import { mockApiService } from "@/services/mockApi";
 import type { User } from "@/types/medical";
 import { createContext, useContext, useEffect, useState } from "react";
-
-// Toggle para usar API real o mock
-const USE_MOCK_API = false; // Cambia a true para usar datos mock
-const authApi = USE_MOCK_API ? mockApiService : apiService;
 
 interface AuthContextType {
     user: User | null;
@@ -32,7 +27,7 @@ const AuthProvider = ({children}: {children:React.ReactNode}) => {
         try {
             const token = localStorage.getItem("token")
             if (token) {
-                const userData = await authApi.checkAuthStatus()
+                const userData = await apiService.checkAuthStatus()
                 setUser(userData)
             }
         } catch (error) {
@@ -47,12 +42,12 @@ const AuthProvider = ({children}: {children:React.ReactNode}) => {
     const login = async (email: string, password: string) => {
         setIsLoading(true)
         try {
-            const data = await authApi.login(email, password)
+            const data = await apiService.login(email, password)
             // Guardamos el token (puede venir como access_token o token)
-            const token = 'access_token' in data ? data.access_token : data.token;
+            const token = (data as any).access_token || (data as any).token;
             localStorage.setItem("token", token)
             // Obtener los datos completos del usuario
-            const userData = await authApi.checkAuthStatus()
+            const userData = await apiService.checkAuthStatus()
             setUser(userData)
             // Guardar usuario en localStorage para acceso inmediato
             localStorage.setItem("user", JSON.stringify(userData))
@@ -77,7 +72,7 @@ const AuthProvider = ({children}: {children:React.ReactNode}) => {
                 role: userData.role
             }
 
-            const registrationResponse = await authApi.register(registrationData)
+            const registrationResponse = await apiService.register(registrationData)
 
             // Hace login automático después del registro
             await login(userData.email, userData.password)

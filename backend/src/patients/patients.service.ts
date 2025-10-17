@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Patient } from './entities/patient.entity';
+import { CreatePatientDto } from './dto/create-patient.dto';
 import * as QRCode from 'qrcode';
 
 @Injectable()
@@ -11,16 +12,16 @@ export class PatientsService {
     private readonly patientRepo: Repository<Patient>,
   ) {}
 
-  async create(data: Partial<Patient>) {
-    // Convertir arrays a JSON strings si vienen como arrays
+  async create(createPatientDto: CreatePatientDto) {
+    // Convertir arrays a JSON strings para Azure SQL
     const processedData = {
-      ...data,
-      allergies: Array.isArray(data.allergies) 
-        ? JSON.stringify(data.allergies) 
-        : data.allergies || '[]',
-      currentMedications: Array.isArray(data.currentMedications) 
-        ? JSON.stringify(data.currentMedications) 
-        : data.currentMedications || '[]',
+      ...createPatientDto,
+      allergies: Array.isArray(createPatientDto.allergies) 
+        ? JSON.stringify(createPatientDto.allergies) 
+        : '[]',
+      currentMedications: Array.isArray(createPatientDto.currentMedications) 
+        ? JSON.stringify(createPatientDto.currentMedications) 
+        : '[]',
       qrCode: 'PLACEHOLDER', // Placeholder temporal para evitar NULL
     };
 
@@ -30,12 +31,17 @@ export class PatientsService {
     
     // Actualizar con el identificador del QR real
     savedPatient.qrCode = `PATIENT:${savedPatient.id}`;
-    return await this.patientRepo.save(savedPatient);
+    const finalPatient = await this.patientRepo.save(savedPatient);
+    
+    // Devolver con arrays parseados
+    return this.parsePatientData(finalPatient);
   }
 
 
   async findAll() {
-    return await this.patientRepo.find();
+    const patients = await this.patientRepo.find();
+    // Convertir JSON strings a arrays para el frontend
+    return patients.map(patient => this.parsePatientData(patient));
   }
 
   async findOne(id: string) {
@@ -43,7 +49,25 @@ export class PatientsService {
       where: { id },
     });
     if (!patient) throw new NotFoundException('Patient not found');
-    return patient;
+    // Convertir JSON strings a arrays para el frontend
+    return this.parsePatientData(patient);
+  }
+
+  private parsePatientData(patient: Patient): any {
+    return {
+      ...patient,
+      allergies: this.parseJsonString(patient.allergies),
+      currentMedications: this.parseJsonString(patient.currentMedications),
+    };
+  }
+
+  private parseJsonString(value: string): string[] {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 
   async update(id: string, data: Partial<Patient>) {

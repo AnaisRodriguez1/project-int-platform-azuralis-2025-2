@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getPatientsByUserId } from '@/services/mockApi';
+import { apiService } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,13 +24,31 @@ export function PatientsDoctor() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'todos' | 'estadio1-2' | 'estadio3-4'>('todos');
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Obtener pacientes del doctor
-  const patients = useMemo(() => {
-    if (user?.role === 'doctor') {
-      return getPatientsByUserId(user.id);
-    }
-    return [];
+  // Cargar pacientes del doctor
+  useEffect(() => {
+    const loadPatients = async () => {
+      if (!user || user.role !== 'doctor') return;
+      
+      try {
+        setIsLoading(true);
+        const allPatients = await apiService.patients.getAll();
+        // Filtrar pacientes donde este doctor está en el careTeam
+        const myPatients = allPatients.filter((patient: any) => 
+          patient.careTeam?.some((member: any) => member.userId === user.id)
+        );
+        setPatients(myPatients);
+      } catch (error) {
+        console.error('Error al cargar pacientes:', error);
+        setPatients([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatients();
   }, [user]);
 
   // Filtrar pacientes por búsqueda
@@ -78,6 +96,14 @@ export function PatientsDoctor() {
       conAlergias: patients.filter((p: Patient) => p.allergies && p.allergies.length > 0).length
     };
   }, [patients]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-8 text-center py-12">
+        <p className="text-gray-600">Cargando pacientes...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-8 space-y-6">

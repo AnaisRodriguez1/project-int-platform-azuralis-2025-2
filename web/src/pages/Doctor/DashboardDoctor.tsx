@@ -1,15 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { doctorTabs } from "@/common/config/navigationTabs";
-import { getPatientsByUserId } from "@/services/mockApi";
 import type { DoctorUser, Patient } from "@/types/medical";
 import { DoctorScanner } from "@/components/Scanner";
 import { ScannedPatientView } from "@/components/ScannedPatientView";
 import { HomeDoctor } from "./Home";
 import { PatientsDoctor } from "./Patients";
 import { Button } from "@/components/ui/button";
+import { CompleteDoctorProfile } from "@/components/CompleteDoctorProfile";
+import { apiService } from "@/services/api";
 
 export function DashboardDoctor() {
   const { user, logout } = useAuth();
@@ -17,22 +18,61 @@ export function DashboardDoctor() {
   const [activeTab, setActiveTab] = useState("home");
   const [scannedPatient, setScannedPatient] = useState<Patient | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
+  const [patientStats, setPatientStats] = useState({ total: 0, scanHistory: 0 });
   const doctorColor = "#3B82F6"; // Color azul para doctor
+
+  // Verificar si el doctor necesita completar su perfil
+  useEffect(() => {
+    if (user && user.role === 'doctor') {
+      const doctorUser = user as any;
+      if (!doctorUser.specialization || !doctorUser.license) {
+        setNeedsProfileCompletion(true);
+      }
+    }
+  }, [user]);
+
+  // Cargar estadísticas de pacientes
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!user || user.role !== 'doctor') return;
+      
+      try {
+        const allPatients = await apiService.patients.getAll();
+        const myPatients = allPatients.filter((patient: any) => 
+          patient.careTeam?.some((member: any) => member.userId === user.id)
+        );
+        
+        const doctorUser = user as any;
+        setPatientStats({
+          total: myPatients.length,
+          scanHistory: doctorUser.scanHistory?.length || 0
+        });
+      } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+        setPatientStats({ total: 0, scanHistory: 0 });
+      }
+    };
+
+    if (!needsProfileCompletion) {
+      loadStats();
+    }
+  }, [user, needsProfileCompletion]);
+
+  // Si necesita completar el perfil, mostrar el formulario
+  if (needsProfileCompletion) {
+    return (
+      <CompleteDoctorProfile
+        onComplete={() => {
+          setNeedsProfileCompletion(false);
+          window.location.reload();
+        }}
+      />
+    );
+  }
 
   // Obtener el doctor con tipo correcto
   const doctorUser = user?.role === "doctor" ? (user as DoctorUser) : null;
-
-  // Obtener estadísticas de pacientes del doctor
-  const patientStats = useMemo(() => {
-    if (doctorUser) {
-      const assignedPatients = getPatientsByUserId(doctorUser.id);
-      return {
-        total: assignedPatients.length,
-        scanHistory: doctorUser.scanHistory?.length || 0,
-      };
-    }
-    return { total: 0, scanHistory: 0 };
-  }, [doctorUser]);
 
   const handleLogout = () => {
     logout();

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from "@/context/AuthContext";
 import { usePatientData } from "@/hooks/usePatientData";
-import { getPatientById } from '@/services/mockApi';
+import { apiService } from '@/services/api';
 import { cancerColors } from '@/types/medical';
+import type { Patient } from '@/types/medical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,9 +18,23 @@ export function ProfilePatient() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedName, setEditedName] = useState(user?.name || '');
   const [editedEmail, setEditedEmail] = useState(user?.email || '');
+  const [patient, setPatient] = useState<Patient | null>(null);
 
   // Obtener datos completos del paciente
-  const patient = patientId ? getPatientById(patientId) : null;
+  useEffect(() => {
+    const loadPatient = async () => {
+      if (patientId) {
+        try {
+          const allPatients = await apiService.patients.getAll();
+          const foundPatient = allPatients.find(p => p.id === patientId);
+          setPatient(foundPatient || null);
+        } catch (error) {
+          console.error('Error loading patient:', error);
+        }
+      }
+    };
+    loadPatient();
+  }, [patientId]);
 
   const handleSaveProfile = () => {
     // En producción aquí se llamaría a updatePatient del mockApi
@@ -163,7 +178,7 @@ export function ProfilePatient() {
           </div>
           <div>
             <Label className="text-sm text-gray-600">Médico tratante</Label>
-            <p className="font-medium">{patient.assignedDoctor}</p>
+            <p className="font-medium">{patient.careTeam?.[0]?.name || 'No asignado'}</p>
           </div>
           <div>
             <Label className="text-sm text-gray-600">Resumen de tratamiento</Label>

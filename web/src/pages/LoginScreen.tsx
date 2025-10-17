@@ -9,7 +9,6 @@ import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { getDashboardRoute } from "@/common/helpers/GetDashboardRoute";
-import { getLoginCredentials } from "@/services/mockApi";
 
 export function LoginScreen() {
     const navigate = useNavigate();
@@ -19,22 +18,64 @@ export function LoginScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleLogin = async () => {
-        if (!email || !password) {
-            setError('Por favor ingresa tu correo y contraseña');
+    const handleLogin = async (e?: React.FormEvent) => {
+        // Prevenir recarga de página si viene de un form submit
+        if (e) {
+            e.preventDefault();
+        }
+
+        // Limpiar error previo
+        setError('');
+
+        // Validación de campos vacíos
+        if (!email.trim()) {
+            setError('Por favor ingresa tu correo electrónico');
+            return;
+        }
+
+        if (!password) {
+            setError('Por favor ingresa tu contraseña');
+            return;
+        }
+
+        // Validación básica de formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError('Por favor ingresa un correo electrónico válido');
             return;
         }
 
         setIsLoading(true);
-        setError('');
 
         try {
-            const user = await login(email, password);
+            const user = await login(email.trim(), password);
             // Redirigir al dashboard correspondiente según el role del usuario
             const dashboardRoute = getDashboardRoute(user.role);
             navigate(dashboardRoute);
         } catch (err: any) {
-            setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+            // Manejo específico de errores del backend
+            if (err.response) {
+                const status = err.response.status;
+                const message = err.response.data?.message;
+
+                if (status === 401) {
+                    setError('Correo o contraseña incorrectos. Por favor verifica tus credenciales.');
+                } else if (status === 404) {
+                    setError('Usuario no encontrado. ¿Necesitas registrarte?');
+                } else if (status === 403) {
+                    setError('Tu cuenta está bloqueada. Contacta al administrador.');
+                } else if (status === 500) {
+                    setError('Error en el servidor. Por favor intenta más tarde.');
+                } else {
+                    setError(message || 'Error al iniciar sesión. Por favor intenta nuevamente.');
+                }
+            } else if (err.request) {
+                // Error de red - no hay respuesta del servidor
+                setError('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+            } else {
+                // Otro tipo de error
+                setError(err.message || 'Error inesperado. Por favor intenta nuevamente.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -130,15 +171,25 @@ export function LoginScreen() {
                     <AlertDescription>
                         <p className="font-semibold text-blue-900 mb-2">👥 Usuarios de prueba:</p>
                         <div className="space-y-1 text-xs text-blue-800">
-                            {getLoginCredentials().map((cred) => (
-                                <div key={cred.email} className="flex justify-between">
-                                    <span className="font-medium">{cred.role}:</span>
-                                    <span>{cred.email}</span>
-                                </div>
-                            ))}
+                            <div className="flex justify-between">
+                                <span className="font-medium">Doctor:</span>
+                                <span>carlos.mendoza@hospital.cl</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium">Enfermera:</span>
+                                <span>ana.perez@hospital.cl</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium">Paciente:</span>
+                                <span>juan.perez@email.cl</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium">Familiar:</span>
+                                <span>maria.lopez@email.cl</span>
+                            </div>
                         </div>
                         <p className="mt-2 text-xs text-blue-700 italic">
-                            💡 Contraseña: {getLoginCredentials()[0]?.password}
+                            💡 Contraseña para todos: password123
                         </p>
                     </AlertDescription>
                 </Alert>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, ArrowLeft } from "lucide-react";
 import type { Patient } from "@/types/medical";
-import { mockApiService } from "@/services/mockApi";
+import { apiService } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import { CancerRibbon } from "./CancerRibbon";
 import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
@@ -24,9 +24,16 @@ export function DoctorScanner({ onPatientFound, onBack }: ScannerProps) {
 
     setTimeout(async () => {
       try {
-        // Simular escaneo del primer paciente disponible (Sofía Ramírez - pat-001)
-        const result = await mockApiService.scanPatientQR(user.id, "pat-001");
-        onPatientFound(result.patient);
+        // Simular escaneo del primer paciente disponible
+        const allPatients = await apiService.patients.getAll();
+        const firstPatient = allPatients[0];
+        
+        if (firstPatient) {
+          onPatientFound(firstPatient);
+        } else {
+          alert("No hay pacientes disponibles");
+          setIsScanning(true);
+        }
       } catch (error) {
         console.error("Error al escanear:", error);
         alert("Error al escanear el código QR");

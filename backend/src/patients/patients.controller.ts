@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { PatientsService } from './patients.service';
+import { CreatePatientDto } from './dto/create-patient.dto';
 import { Patient } from './entities/patient.entity';
 
 @Controller('patients')
@@ -17,8 +18,8 @@ export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Post()
-  create(@Body() body: Partial<Patient>) {
-    return this.patientsService.create(body);
+  create(@Body() createPatientDto: CreatePatientDto) {
+    return this.patientsService.create(createPatientDto);
   }
 
   @Get()

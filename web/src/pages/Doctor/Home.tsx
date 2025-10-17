@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,36 +12,54 @@ import {
   Clock,
   Heart,
   CheckCircle,
-  Bell,
   FileText
 } from 'lucide-react';
-import type { DoctorUser } from '@/types/medical';
 import { cancerColors } from '@/types/medical';
-import { getPatientsByUserId } from '@/services/mockApi';
+import { apiService } from '@/services/api';
 
 export function HomeDoctor() {
   const { user } = useAuth();
+  const [patients, setPatients] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Obtener pacientes del doctor
-  const patients = useMemo(() => {
-    if (user?.role === 'doctor') {
-      const doctorUser = user as DoctorUser;
-      return getPatientsByUserId(doctorUser.id);
-    }
-    return [];
+  // Cargar pacientes desde la API real
+  useEffect(() => {
+    const loadPatients = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        const allPatients = await apiService.patients.getAll();
+        // Filtrar pacientes que tienen al doctor en su careTeam
+        const myPatients = allPatients.filter((patient: any) => 
+          patient.careTeam?.some((member: any) => member.userId === user.id)
+        );
+        setPatients(myPatients);
+      } catch (error) {
+        console.error('Error al cargar pacientes:', error);
+        setPatients([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatients();
   }, [user]);
 
+  // Obtener pacientes del doctor desde la API
   // Calcular estadísticas
   const stats = useMemo(() => {
     const total = patients.length;
-    const conAlergias = patients.filter(p => p.allergies && p.allergies.length > 0).length;
-    const estadiosTempranos = patients.filter(p => p.stage.includes('I') || p.stage.includes('II')).length;
-    const estadiosAvanzados = patients.filter(p => p.stage.includes('III') || p.stage.includes('IV')).length;
+    const conAlergias = patients.filter((p: any) => p.allergies && p.allergies.length > 0).length;
+    const estadiosTempranos = patients.filter((p: any) => p.stage?.includes('I') || p.stage?.includes('II')).length;
+    const estadiosAvanzados = patients.filter((p: any) => p.stage?.includes('III') || p.stage?.includes('IV')).length;
     
     // Distribución por tipo de cáncer
     const cancerDistribution: { [key: string]: number } = {};
-    patients.forEach(p => {
-      cancerDistribution[p.cancerType] = (cancerDistribution[p.cancerType] || 0) + 1;
+    patients.forEach((p: any) => {
+      if (p.cancerType) {
+        cancerDistribution[p.cancerType] = (cancerDistribution[p.cancerType] || 0) + 1;
+      }
     });
 
     return {
@@ -57,6 +75,14 @@ export function HomeDoctor() {
   const recentPatients = useMemo(() => {
     return patients.slice(0, 3);
   }, [patients]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 md:mt-8 space-y-4 md:space-y-6 pb-4">
@@ -253,13 +279,13 @@ export function HomeDoctor() {
                   </p>
                 ) : (
                   recentPatients.map((patient) => {
-                    const color = cancerColors[patient.cancerType];
+                    const color = cancerColors[patient.cancerType as keyof typeof cancerColors];
                     return (
                       <div key={patient.id} className="flex items-center space-x-3 p-2 md:p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
                         <Avatar className="w-9 h-9 md:w-10 md:h-10 flex-shrink-0">
                           <AvatarImage src={patient.photo} alt={patient.name} />
                           <AvatarFallback style={{ backgroundColor: color.color }} className="text-white text-xs md:text-sm">
-                            {patient.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            {patient.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">

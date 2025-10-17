@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientData } from '@/hooks/usePatientData';
-import {
-  getDocumentsByPatientId,
-  uploadDocument,
-  deleteDocument as deleteDocumentApi,
-  getUserById
-} from '@/services/mockApi';
+import { apiService } from '@/services/api';
 import { type PatientDocument, type DocumentType, getDocumentTypeColor, getDocumentTypeLabel } from '@/types/medical';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,10 +38,15 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
     filterDocuments();
   }, [documents, selectedFilter]);
 
-  const loadDocuments = () => {
+  const loadDocuments = async () => {
     if (!patientId) return;
-    const docs = getDocumentsByPatientId(patientId);
-    setDocuments(docs);
+    try {
+      const allDocs = await apiService.documents.getAll();
+      const docs = allDocs.filter(doc => doc.patientId === patientId);
+      setDocuments(docs);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    }
   };
 
   const filterDocuments = () => {
@@ -70,7 +70,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
       // Simular URL de documento (en producción sería una URL real del servidor)
       const mockUrl = `https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=300&h=400&fit=crop`;
 
-      await uploadDocument({
+      await apiService.documents.create({
         title: newDocTitle,
         type: newDocType,
         url: mockUrl,
@@ -97,7 +97,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
 
     setIsLoading(true);
     try {
-      await deleteDocumentApi(docId);
+      await apiService.documents.delete(docId);
       loadDocuments();
     } catch (error) {
       console.error('Error al eliminar documento:', error);
@@ -148,12 +148,9 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
     // Pacientes pueden eliminar documentos relacionados con ellos (excepto los de doctor/enfermera)
     if (user.role === 'patient') {
       if (document.patientId === patientId) {
-        // Verificar si el uploader es doctor o enfermera usando búsqueda O(1)
-        const uploader = getUserById(document.uploaderId);
-        if (uploader && (uploader.role === 'doctor' || uploader.role === 'nurse')) {
-          return false;
-        }
-        return true;
+        // Por seguridad, los pacientes no pueden eliminar documentos subidos por profesionales
+        // (Requeriría llamada API para verificar el uploader)
+        return document.uploaderId === user.id;
       }
     }
     
