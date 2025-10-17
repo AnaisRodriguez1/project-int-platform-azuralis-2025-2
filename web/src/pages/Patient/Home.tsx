@@ -1,13 +1,14 @@
 import { useAuth } from '@/context/AuthContext';
-import { usePatientData } from '@/hooks/usePatientData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { QRCodeGenerator } from '@/components/QRCodeGenerator';
 import { Share2, User, StickyNote, FolderOpen, Settings } from 'lucide-react';
-import { getPatientById } from '@/services/mockApi';
-import type { PatientUser } from '@/types/medical';
+import { apiService } from '@/services/api';
+import { cancerColors } from '@/types/medical';
+import type { Patient } from '@/types/medical';
+import { useState, useEffect } from 'react';
+import { CompleteProfileForm } from '@/components/CompleteProfileForm';
 
 interface HomePatientProps {
   onTabChange?: (tab: string) => void;
@@ -15,11 +16,57 @@ interface HomePatientProps {
 
 export function HomePatient({ onTabChange }: HomePatientProps) {
   const { user } = useAuth();
-  const { cancerColor } = usePatientData();
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [qrImageUrl, setQrImageUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
-  // Obtener datos completos del paciente
-  const patientUser = user as PatientUser;
-  const patient = patientUser?.patientId ? getPatientById(patientUser.patientId) : null;
+  // Buscar el paciente por RUT (ya que el usuario tiene el mismo RUT que el paciente)
+  useEffect(() => {
+    const fetchPatient = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        // Obtener todos los pacientes y buscar el que coincida con el RUT del usuario
+        const patients = await apiService.patients.getAll();
+        const foundPatient = patients.find(p => p.rut === user.rut);
+        
+        if (foundPatient) {
+          setPatient(foundPatient);
+          setQrImageUrl(apiService.patients.getQRCode(foundPatient.id));
+        }
+      } catch (error) {
+        console.error('Error al obtener paciente:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatient();
+  }, [user]);
+
+  // Función para recargar datos después de completar el perfil
+  const handleProfileComplete = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const patients = await apiService.patients.getAll();
+      const foundPatient = patients.find(p => p.rut === user.rut);
+      
+      if (foundPatient) {
+        setPatient(foundPatient);
+        setQrImageUrl(apiService.patients.getQRCode(foundPatient.id));
+      }
+    } catch (error) {
+      console.error('Error al recargar paciente:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Obtener color del tipo de cáncer
+  const cancerColor = patient ? cancerColors[patient.cancerType] : cancerColors.other;
 
   const shareQRCode = async () => {
     if (!patient) return;
@@ -36,17 +83,23 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
       }
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(patient.qrCode);
-      alert('Código copiado al portapapeles');
+      if (qrImageUrl) {
+        navigator.clipboard.writeText(qrImageUrl);
+        alert('URL del QR copiado al portapapeles');
+      }
     }
   };
 
-  if (!patient) {
+  if (loading) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-600">No se encontraron datos del paciente</p>
+        <p className="text-gray-600">Cargando datos del paciente...</p>
       </div>
     );
+  }
+
+  if (!patient) {
+    return <CompleteProfileForm onComplete={handleProfileComplete} />;
   }
 
   return (
@@ -61,11 +114,17 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-center">
-            <QRCodeGenerator 
-              value={patient.qrCode}
-              size={200}
-              className="mx-auto"
-            />
+            {qrImageUrl ? (
+              <img 
+                src={qrImageUrl} 
+                alt="QR Code del Paciente"
+                className="w-[200px] h-[200px] border-2 border-gray-200 rounded-lg"
+              />
+            ) : (
+              <div className="w-[200px] h-[200px] bg-gray-100 rounded-lg flex items-center justify-center">
+                <p className="text-sm text-gray-500">Cargando QR...</p>
+              </div>
+            )}
           </div>
           <Button 
             onClick={shareQRCode}
@@ -103,7 +162,7 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
                   {patient.diagnosis} - {patient.stage}
                 </Badge>
                 <p className="text-sm text-gray-600">
-                  <strong>Médico tratante:</strong> {patient.assignedDoctor}
+                  <strong>RUT:</strong> {patient.rut}
                 </p>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">

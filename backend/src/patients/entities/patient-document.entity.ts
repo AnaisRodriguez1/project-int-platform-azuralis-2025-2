@@ -12,8 +12,8 @@ export class PatientDocument {
   title: string;
 
   @Column({
-  type: 'enum',
-  enum: DocumentType,
+    type: 'varchar',
+    length: 50,
   })
   type: DocumentType;
 

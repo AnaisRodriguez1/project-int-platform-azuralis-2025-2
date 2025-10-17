@@ -14,17 +14,17 @@ export class CareTeamMember {
   name: string;
 
   @Column({
-    type: 'enum',
-    enum: CareTeamRole,
-    })
-    role: CareTeamRole;
+    type: 'varchar',
+    length: 50,
+  })
+  role: CareTeamRole;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   assignedAt: Date;
 
   @Column({
-    type: 'enum',
-    enum: ['active', 'inactive'],
+    type: 'varchar',
+    length: 20,
     default: 'active',
   })
   status: string;

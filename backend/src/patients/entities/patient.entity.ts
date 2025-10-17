@@ -39,16 +39,16 @@ export class Patient {
   stage: string;
 
   @Column({
-    type: 'enum',
-    enum: CancerType,
+    type: 'varchar',
+    length: 50,
   })
   cancerType: CancerType;
 
-  @Column('text', { array: true, default: '{}' })
-  allergies: string[];
+  @Column('text', { nullable: true, default: '[]' })
+  allergies: string; // JSON string de string[]
 
-  @Column('text', { array: true, default: '{}' })
-  currentMedications: string[];
+  @Column('text', { nullable: true, default: '[]' })
+  currentMedications: string; // JSON string de string[]
 
   @OneToMany(() => EmergencyContact, (contact) => contact.patient, {
     cascade: true,
@@ -66,8 +66,8 @@ export class Patient {
   @OneToMany(() => CareTeamMember, (ctm) => ctm.patient, { cascade: true })
   careTeam: CareTeamMember[];
 
-  @Column({ nullable: false })
-  qrCode: string;
+  @Column({ nullable: true })
+  qrCode?: string;
 
   @OneToMany(() => PatientNote, (note) => note.patient, { cascade: true })
   notes?: PatientNote[];
