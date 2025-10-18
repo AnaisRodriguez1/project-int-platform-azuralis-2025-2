@@ -7,7 +7,7 @@ import { View, ActivityIndicator } from 'react-native';
 // Pantallas
 import LoginScreen from '../components/LoginScreen';
 import RegisterScreen from '../components/RegisterScreen';
-import DashboardPatient from '../components/DashboardPatient';
+import DashboardPatient from '../pages/Patient/DashboardPatient';
 import DashboardDoctor from '../components/DashboardDoctor';
 import DashboardGuardian from '../components/DashboardGuardian';
 import DashboardNurse from '../components/DashboardNurse';

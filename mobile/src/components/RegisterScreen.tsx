@@ -1,14 +1,48 @@
 import React, { useState } from 'react';
-import {View,Text,TextInput,TouchableOpacity,StyleSheet, Alert,ScrollView,} from 'react-native';
-import { Picker } from '@react-native-picker/picker'; 
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,} from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+
+// Función para dar formato básico al RUT
+const formatRUT = (rut: string) => {
+  let clean = rut.replace(/\D/g, ''); // elimina todo excepto dígitos
+  if (clean.length <= 1) return clean;
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1);
+  let formatted = '';
+  for (let i = body.length - 1, j = 1; i >= 0; i--, j++) {
+    formatted = body.charAt(i) + formatted;
+    if (j % 3 === 0 && i !== 0) formatted = '.' + formatted;
+  }
+  return `${formatted}-${dv}`;
+};
+
+// Validación básica
+const validateFields = (
+  name: string,
+  rut: string,
+  email: string,
+  password: string,
+  confirmPassword: string
+) => {
+  if (!name || !rut || !email || !password || !confirmPassword)
+    return 'Por favor completa todos los campos.';
+  if (!/^[0-9]{7,8}-[0-9kK]$/.test(rut.replace(/\./g, '')))
+    return 'RUT inválido. Ejemplo: 12.345.678-9';
+  if (password.length < 6)
+    return 'La contraseña debe tener al menos 6 caracteres.';
+  if (password !== confirmPassword)
+    return 'Las contraseñas no coinciden.';
+  return null;
+};
 
 export default function RegisterScreen() {
   const { register } = useAuth();
   const navigation = useNavigation<any>();
 
   const [name, setName] = useState('');
+  const [rut, setRut] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,24 +50,21 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Por favor completa todos los campos.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden.');
+    const errorMessage = validateFields(name, rut, email, password, confirmPassword);
+    if (errorMessage) {
+      Alert.alert('Error', errorMessage);
       return;
     }
 
     try {
       setLoading(true);
-      const userData = { name, email, password, role };
+      const userData = { name, rut, email, password, role };
 
-      // 1️⃣ Registrar usuario
       await register(userData);
 
-      // 3️⃣ Redirigir al dashboard según el rol elegido
+      Alert.alert('Registro exitoso', `Bienvenido/a ${name}!`);
+
+      // Redirigir al dashboard correspondiente
       switch (role) {
         case 'doctor':
           navigation.navigate('DashboardDoctor');
@@ -50,15 +81,15 @@ export default function RegisterScreen() {
         default:
           navigation.navigate('Login');
       }
-
-      Alert.alert('Registro exitoso', `Bienvenido/a ${name}!`);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Hubo un problema al registrar.');
+      Alert.alert(
+        'Error',
+        error.message || 'Hubo un problema al registrar. Intenta nuevamente.'
+      );
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -71,6 +102,14 @@ export default function RegisterScreen() {
           value={name}
           onChangeText={setName}
         />
+
+        <TextInput
+          style={styles.input}
+          placeholder="RUT (12.345.678-9)"
+          value={rut}
+          onChangeText={(v) => setRut(formatRUT(v))}
+        />
+
         <TextInput
           style={styles.input}
           placeholder="Correo electrónico"
@@ -79,6 +118,7 @@ export default function RegisterScreen() {
           value={email}
           onChangeText={setEmail}
         />
+
         <TextInput
           style={styles.input}
           placeholder="Contraseña"
@@ -86,6 +126,7 @@ export default function RegisterScreen() {
           value={password}
           onChangeText={setPassword}
         />
+
         <TextInput
           style={styles.input}
           placeholder="Confirmar contraseña"
@@ -94,7 +135,7 @@ export default function RegisterScreen() {
           onChangeText={setConfirmPassword}
         />
 
-        {/* 👇 Nuevo selector de rol */}
+        {/* Selector de Rol */}
         <View style={styles.pickerContainer}>
           <Text style={styles.pickerLabel}>Selecciona tu rol:</Text>
           <Picker
