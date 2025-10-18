@@ -45,31 +45,37 @@ export class PatientsService {
 
 
   async findAll() {
-    const patients = await this.patientRepo.find({
-      relations: ['careTeam', 'emergencyContacts'],
-    });
+    const patients = await this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
+      .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .getMany();
+    
     // Convertir JSON strings a arrays para el frontend
     return patients.map(patient => this.parsePatientData(patient));
   }
 
   async findMyCareTeamPatients(userId: string) {
     // Obtener pacientes donde el usuario está en el careTeam activo
+    // Usamos dos aliases diferentes: uno para filtrar (myMembership) y otro para cargar todos (allMembers)
     const patients = await this.patientRepo
       .createQueryBuilder('patient')
-      .leftJoinAndSelect('patient.careTeam', 'careTeamMember')
+      .innerJoin('patient.careTeam', 'myMembership', 'myMembership.userId = :userId AND myMembership.status = :status', { userId, status: 'active' })
+      .leftJoinAndSelect('patient.careTeam', 'allMembers', 'allMembers.status = :activeStatus', { activeStatus: 'active' })
       .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
-      .where('careTeamMember.userId = :userId', { userId })
-      .andWhere('careTeamMember.status = :status', { status: 'active' })
       .getMany();
     
     return patients.map(patient => this.parsePatientData(patient));
   }
 
   async findOne(id: string) {
-    const patient = await this.patientRepo.findOne({
-      where: { id },
-      relations: ['careTeam', 'emergencyContacts'],
-    });
+    const patient = await this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
+      .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .where('patient.id = :id', { id })
+      .getOne();
+      
     if (!patient) throw new NotFoundException('Patient not found');
     // Convertir JSON strings a arrays para el frontend
     return this.parsePatientData(patient);
@@ -79,9 +85,11 @@ export class PatientsService {
     // Normalizar RUT para búsqueda (quitar puntos y convertir a minúsculas)
     const normalizedRut = rut.replace(/\./g, '').toLowerCase();
     
-    const patients = await this.patientRepo.find({
-      relations: ['careTeam', 'emergencyContacts'],
-    });
+    const patients = await this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
+      .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .getMany();
     
     const patient = patients.find(p => {
       const patientRut = p.rut.replace(/\./g, '').toLowerCase();

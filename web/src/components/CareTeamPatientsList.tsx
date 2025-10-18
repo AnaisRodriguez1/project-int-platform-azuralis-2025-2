@@ -27,6 +27,17 @@ export function CareTeamPatientsList({ onPatientSelect }: CareTeamPatientsListPr
       
       // Usar el endpoint específico
       const myPatients = await apiService.patients.getMyCareTeam();
+      
+      // Debug: ver qué datos estamos recibiendo
+      console.log('🔍 Pacientes recibidos:', myPatients);
+      myPatients.forEach(p => {
+        console.log(`📋 Paciente ${p.name}:`, {
+          careTeam: p.careTeam,
+          totalMembers: p.careTeam?.length,
+          activeMembers: p.careTeam?.filter(m => m.status === 'active').length
+        });
+      });
+      
       setPatients(myPatients);
     } catch (err) {
       console.error('Error al cargar pacientes del equipo:', err);
@@ -169,7 +180,7 @@ export function CareTeamPatientsList({ onPatientSelect }: CareTeamPatientsListPr
 
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>Equipo: {patient.careTeam?.filter(m => m.status === 'active').length || 0} miembros</span>
+                    <span>Equipo: {patient.careTeam?.length || 0} miembros</span>
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
