@@ -151,6 +151,7 @@ export const getDocumentTypeLabel = (type: DocumentType): string => {
 export interface SearchRecord {
   patientId: string;
   patientRut: string;
+  patientName?: string; // Nombre del paciente (se carga dinámicamente)
   searchedAt: Date;
 }
 
@@ -166,7 +167,8 @@ interface BaseUser {
 // Base para personal clínico para no repetir código.
 interface ClinicalStaffUser extends BaseUser {
   role: 'doctor' | 'nurse';
-  searchHistory?: SearchRecord[]; // Historial de búsquedas por RUT
+  scanHistory?: SearchRecord[]; // Historial UNIFICADO (QR móvil + búsqueda web) - columna en DB
+  searchHistory?: SearchRecord[]; // Alias para frontend - convertido por backend desde scanHistory
   assignedPatients?: string[];
 }
 

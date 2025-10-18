@@ -1,43 +1,56 @@
 -- ==========================================
--- SCRIPT DE POBLACIÓN DE BASE DE DATOS
+-- SCRIPT DE POBLACIÓN COMPLETA DE BASE DE DATOS
 -- Sistema de Fichas Médicas Oncológicas AZURALIS
 -- ==========================================
 -- 
--- IMPORTANTE: Este script complementa los usuarios existentes
--- NO elimina los usuarios ya creados en Azure SQL
+-- IMPORTANTE: Este script ELIMINA Y RECREA TODOS LOS DATOS
+-- Incluye usuarios con RUTs válidos verificados
 -- ==========================================
 
--- Limpiar solo datos de pacientes y relaciones (NO usuarios)
+-- Limpiar TODOS los datos (en orden por dependencias)
 DELETE FROM patient_documents;
 DELETE FROM patient_notes;
 DELETE FROM care_team_members;
 DELETE FROM emergency_contacts;
 DELETE FROM operations;
 DELETE FROM patients;
+DELETE FROM users;
+
+PRINT '==========================================';
+PRINT 'Base de datos limpiada completamente';
+PRINT '==========================================';
 
 -- ==========================================
--- NOTA: Los usuarios YA EXISTEN en la base de datos
--- ==========================================
--- IDs de usuarios existentes (Azure SQL):
--- Dr. Carlos Mendoza: '2f7f5f73-3592-419b-b97d-fdcde91ffb43'
--- Dra. María González: '4fcb3057-68ff-401b-b256-1d2603e3e034'
--- Enf. Ana Pérez: 'a47e661d-b239-4f4f-87fc-a96f4d53c549'
--- Enf. José Silva: '9f97109a-9d71-4eb0-9bf1-bce6590c05cd'
--- Paciente Sofía Ramírez: '080aa987-eec7-4bb3-8e5c-3b603e320d02'
--- Paciente Pedro Flores: '0f517177-507f-480e-a7b4-93303295a438'
-
--- ==========================================
--- 1. NUEVOS USUARIOS PACIENTES
+-- 1. USUARIOS - DOCTORES Y ENFERMERAS
 -- ==========================================
 
--- Insertar usuarios solo si no existen
-IF NOT EXISTS (SELECT 1 FROM users WHERE id = 'a1111111-1111-1111-1111-111111111111')
-    INSERT INTO users (id, name, email, password, rut, role) VALUES
-    ('a1111111-1111-1111-1111-111111111111', 'Carmen López Soto', 'carmen.lopez@email.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '18765432-0', 'patient');
+-- Password para todos: $2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy (Patient123!)
 
-IF NOT EXISTS (SELECT 1 FROM users WHERE id = 'b2222222-2222-2222-2222-222222222222')
-    INSERT INTO users (id, name, email, password, rut, role) VALUES
-    ('b2222222-2222-2222-2222-222222222222', 'Claudia Fernández Muñoz', 'claudia.fernandez@email.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '19876543-K', 'patient');
+INSERT INTO users (id, name, email, password, rut, role, specialization, license, scanHistory) VALUES
+-- DOCTORES
+('2f7f5f73-3592-419b-b97d-fdcde91ffb43', 'Dr. Carlos Mendoza', 'carlos.mendoza@hospital.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '12.345.678-5', 'doctor', 'Oncología', 'MED-12345', NULL),
+('4fcb3057-68ff-401b-b256-1d2603e3e034', 'Dra. María González', 'maria.gonzalez@hospital.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '23.456.789-6', 'doctor', 'Cirugía Oncológica', 'MED-67890', NULL);
+
+-- ENFERMERAS
+INSERT INTO users (id, name, email, password, rut, role, department, license, scanHistory) VALUES
+('a47e661d-b239-4f4f-87fc-a96f4d53c549', 'Enf. Ana Pérez', 'ana.perez@hospital.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '16.789.012-1', 'nurse', 'Oncología', 'ENF-11111', NULL),
+('9f97109a-9d71-4eb0-9bf1-bce6590c05cd', 'Enf. José Silva', 'jose.silva@hospital.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '17.890.123-0', 'nurse', 'Quimioterapia', 'ENF-22222', NULL);
+
+-- ==========================================
+-- 2. USUARIOS PACIENTES
+-- ==========================================
+
+INSERT INTO users (id, name, email, password, rut, role) VALUES
+('080aa987-eec7-4bb3-8e5c-3b603e320d02', 'Sofía Ramírez', 'sofia.ramirez@email.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '18.234.567-9', 'patient'),
+('0f517177-507f-480e-a7b4-93303295a438', 'Pedro Flores', 'pedro.flores@email.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '19.345.678-2', 'patient'),
+('a1111111-1111-1111-1111-111111111111', 'Carmen López Soto', 'carmen.lopez@email.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '15.876.543-8', 'patient'),
+('b2222222-2222-2222-2222-222222222222', 'Claudia Fernández Muñoz', 'claudia.fernandez@email.cl', '$2b$10$P6KNW2QkXI62032r.oYF6uSfzCNkAQAu0o.fnUGNDUV3H.h3g9oDy', '14.987.654-5', 'patient');
+
+PRINT 'Usuarios creados exitosamente';
+
+-- ==========================================
+-- 3. PACIENTES (FICHAS MÉDICAS)
+-- ==========================================
 
 -- ==========================================
 -- 2. PACIENTES (FICHAS MÉDICAS)
@@ -45,28 +58,28 @@ IF NOT EXISTS (SELECT 1 FROM users WHERE id = 'b2222222-2222-2222-2222-222222222
 
 INSERT INTO patients (id, name, age, rut, photo, diagnosis, stage, cancerType, allergies, currentMedications, treatmentSummary, qrCode) VALUES
 -- Paciente 1: Sofía Ramírez (ya existe como usuario, ahora tiene ficha completa)
-('080aa987-eec7-4bb3-8e5c-3b603e320d02', 'Sofía Ramírez', 42, '56789012-0', NULL, 'Carcinoma ductal invasivo de mama', 'Estadio IIB', 'breast', 
+('080aa987-eec7-4bb3-8e5c-3b603e320d02', 'Sofía Ramírez', 42, '18.234.567-9', NULL, 'Carcinoma ductal invasivo de mama', 'Estadio IIB', 'breast', 
  '["Penicilina", "Mariscos"]', 
  '["Tamoxifeno 20mg diario", "Letrozol 2.5mg diario", "Omeprazol 20mg"]', 
  'Paciente post-mastectomía parcial. Completó 6 ciclos de quimioterapia AC-T. Actualmente en hormonoterapia adyuvante. Próximo control mamográfico en 3 meses.', 
  'PATIENT:080aa987-eec7-4bb3-8e5c-3b603e320d02'),
 
 -- Paciente 2: Pedro Flores (ya existe como usuario, ahora tiene ficha completa)
-('0f517177-507f-480e-a7b4-93303295a438', 'Pedro Flores', 59, '67890123-6', NULL, 'Adenocarcinoma de colon ascendente', 'Estadio IIIC', 'colorectal',
+('0f517177-507f-480e-a7b4-93303295a438', 'Pedro Flores', 59, '19.345.678-2', NULL, 'Adenocarcinoma de colon ascendente', 'Estadio IIIC', 'colorectal',
  '[]',
  '["Capecitabina 1500mg", "Bevacizumab 5mg/kg", "Loperamida 2mg PRN"]',
  'Post-hemicolectomía derecha laparoscópica. Completó 8 ciclos FOLFOX. Actualmente en tratamiento de mantenimiento con Bevacizumab. CEA en descenso.',
  'PATIENT:0f517177-507f-480e-a7b4-93303295a438'),
 
 -- Paciente 3: Nuevo paciente - Cáncer Gástrico
-('a1111111-1111-1111-1111-111111111111', 'Carmen López Soto', 64, '18765432-0', NULL, 'Adenocarcinoma gástrico difuso', 'Estadio IVA', 'gastric',
+('a1111111-1111-1111-1111-111111111111', 'Carmen López Soto', 64, '15.876.543-8', NULL, 'Adenocarcinoma gástrico difuso', 'Estadio IVA', 'gastric',
  '["Contraste yodado", "Morfina"]',
  '["Cisplatino 75mg/m²", "Capecitabina 1000mg", "Metoclopramida 10mg", "Tramadol 50mg"]',
  'Paciente en quimioterapia paliativa esquema XP. Manejo del dolor con analgesia escalonada. Soporte nutricional con suplementos hipercalóricos.',
  'PATIENT:a1111111-1111-1111-1111-111111111111'),
 
 -- Paciente 4: Nuevo paciente - Cáncer Cervicouterino
-('b2222222-2222-2222-2222-222222222222', 'Claudia Fernández Muñoz', 39, '19876543-K', NULL, 'Carcinoma escamoso de cérvix', 'Estadio IIB', 'cervical',
+('b2222222-2222-2222-2222-222222222222', 'Claudia Fernández Muñoz', 39, '14.987.654-5', NULL, 'Carcinoma escamoso de cérvix', 'Estadio IIB', 'cervical',
  '[]',
  '["Cisplatino 40mg/m²", "Ácido fólico 5mg", "Ondansetrón 8mg", "Complejo B"]',
  'En quimiorradioterapia concurrente. Completó 22/28 sesiones de radioterapia pélvica. Tolera adecuadamente el tratamiento. Control ginecológico mensual.',
@@ -205,19 +218,21 @@ PRINT 'SCRIPT COMPLETADO EXITOSAMENTE';
 PRINT '==========================================';
 
 -- ==========================================
--- CREDENCIALES EXISTENTES
+-- CREDENCIALES DE ACCESO
 -- ==========================================
+-- TODOS los usuarios tienen la misma contraseña: Patient123!
+--
 -- DOCTORES:
--- Dr. Carlos Mendoza - carlos.mendoza@hospital.cl / Doctor123!
--- Dra. María González - maria.gonzalez@hospital.cl / Doctor123!
+-- Dr. Carlos Mendoza - carlos.mendoza@hospital.cl / Patient123! - RUT: 12.345.678-5
+-- Dra. María González - maria.gonzalez@hospital.cl / Patient123! - RUT: 23.456.789-6
 -- 
 -- ENFERMERAS:
--- Enf. Ana Pérez - ana.perez@hospital.cl / Nurse123!
--- Enf. José Silva - jose.silva@hospital.cl / Nurse123!
+-- Enf. Ana Pérez - ana.perez@hospital.cl / Patient123! - RUT: 16.789.012-1
+-- Enf. José Silva - jose.silva@hospital.cl / Patient123! - RUT: 17.890.123-0
 -- 
 -- PACIENTES:
--- Sofía Ramírez - sofia.ramirez@email.cl / Patient123!
--- Pedro Flores - pedro.flores@email.cl / Patient123!
--- Carmen López - carmen.lopez@email.cl / Patient123!
--- Claudia Fernández - claudia.fernandez@email.cl / Patient123!
+-- Sofía Ramírez - sofia.ramirez@email.cl / Patient123! - RUT: 18.234.567-9
+-- Pedro Flores - pedro.flores@email.cl / Patient123! - RUT: 19.345.678-2
+-- Carmen López - carmen.lopez@email.cl / Patient123! - RUT: 15.876.543-8
+-- Claudia Fernández - claudia.fernandez@email.cl / Patient123! - RUT: 14.987.654-5
 -- ==========================================

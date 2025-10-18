@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, UserSearch, AlertCircle } from 'lucide-react';
-import type { Patient } from '@/types/medical';
-import { validateRut as validateRutLibrary } from '@fdograph/rut-utilities';
+import { Search, UserSearch, AlertCircle, Clock, User } from 'lucide-react';
+import type { Patient, DoctorUser, NurseUser, SearchRecord } from '@/types/medical';
+import { validateRUT } from '@/common/helpers/ValidateForm';
 
 interface SearchPatientByRutProps {
   onPatientFound: (patient: Patient) => void;
@@ -19,7 +19,83 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
   const [rut, setRut] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchHistory, setSearchHistory] = useState<SearchRecord[]>([]);
   const { user } = useAuth();
+
+  // Cargar historial UNIFICADO (QR móvil + búsqueda web) al montar el componente
+  useEffect(() => {
+    console.log('🔍 SearchPatientByRut - Usuario actual:', user);
+    
+    if (user && (user.role === 'doctor' || user.role === 'nurse')) {
+      const clinicalUser = user as DoctorUser | NurseUser;
+      const history = clinicalUser.searchHistory;
+      
+      console.log('📋 Historial encontrado:', history);
+      
+      if (history && history.length > 0) {
+        // Ordenar por fecha más reciente primero y tomar solo los últimos 5
+        const sortedHistory = [...history]
+          .sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime())
+          .slice(0, 5);
+        
+        console.log('✅ Historial ordenado:', sortedHistory);
+        
+        // Cargar nombres de pacientes para cada registro del historial
+        Promise.all(
+          sortedHistory.map(async (record) => {
+            try {
+              const name = await apiService.patients.getName(record.patientId);
+              return { ...record, patientName: name };
+            } catch (error) {
+              console.error(`Error cargando nombre para paciente ${record.patientId}:`, error);
+              return { ...record, patientName: 'Nombre no disponible' };
+            }
+          })
+        ).then((historyWithNames) => {
+          setSearchHistory(historyWithNames);
+        });
+      } else {
+        console.log('⚠️ No hay historial disponible');
+      }
+    }
+  }, [user]);
+
+  const handleSearchFromHistory = async (historyItem: SearchRecord) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const patient = await apiService.patients.findByRut(historyItem.patientRut);
+      onPatientFound(patient);
+    } catch (err: any) {
+      console.error('Error al cargar paciente del historial:', err);
+      setError('Error al cargar el paciente. Por favor intenta nuevamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    const now = new Date();
+    const diffInMs = now.getTime() - dateObj.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) {
+      const diffInMins = Math.floor(diffInMs / (1000 * 60));
+      return `Hace ${diffInMins} minuto${diffInMins !== 1 ? 's' : ''}`;
+    } else if (diffInHours < 24) {
+      return `Hace ${diffInHours} hora${diffInHours !== 1 ? 's' : ''}`;
+    } else {
+      return dateObj.toLocaleDateString('es-CL', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +108,7 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
     }
 
     // Validar formato del RUT
-    if (!validateRutLibrary(rut)) {
+    if (!validateRUT(rut)) {
       setError('El RUT ingresado no es válido');
       return;
     }
@@ -160,6 +236,66 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
           </CardContent>
         </Card>
 
+        {/* Historial de Búsquedas (QR móvil + búsqueda web UNIFICADO) */}
+        {searchHistory.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Clock className="w-6 h-6 text-gray-600" />
+                <span>Búsquedas Recientes</span>
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-2">
+                Últimas 5 búsquedas (QR móvil + web, sin duplicados)
+              </p>
+            </CardHeader>
+
+            <CardContent>
+              <div className="space-y-2">
+                {searchHistory.map((item, index) => (
+                  <button
+                    key={`${item.patientId}-${index}`}
+                    onClick={() => handleSearchFromHistory(item)}
+                    disabled={loading}
+                    className="w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left border border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <User className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {item.patientName || 'Cargando...'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            RUT: {item.patientRut}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(item.searchedAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Información adicional */}
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-4">
@@ -189,6 +325,9 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
             </div>
           </CardContent>
         </Card>
+
+        {/* Espacio para el Bottom Navigation */}
+        <div className="h-20"></div>
       </div>
     </div>
   );

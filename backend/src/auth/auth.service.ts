@@ -73,6 +73,47 @@ export class AuthService {
 
   async getProfile(id: string) {
     const user = await this.usersRepo.findOne({ where: { id } });
-    return user || null;
+    if (!user) return null;
+
+    // Parsear campos JSON para enviar al frontend
+    const userData: any = { ...user };
+    
+    // Parsear scanHistory si existe (para doctores/enfermeras) y renombrarlo a searchHistory para el frontend
+    if (user.scanHistory) {
+      try {
+        userData.searchHistory = JSON.parse(user.scanHistory);
+      } catch (e) {
+        console.error('Error parseando scanHistory:', e);
+        userData.searchHistory = [];
+      }
+    }
+    
+    // Eliminar scanHistory del objeto (ya lo enviamos como searchHistory)
+    delete userData.scanHistory;
+
+    // Parsear assignedPatients si existe
+    if (user.assignedPatients) {
+      try {
+        userData.assignedPatients = JSON.parse(user.assignedPatients);
+      } catch (e) {
+        console.error('Error parseando assignedPatients:', e);
+        userData.assignedPatients = [];
+      }
+    }
+
+    // Parsear patientIds si existe (para guardianes)
+    if (user.patientIds) {
+      try {
+        userData.patientIds = JSON.parse(user.patientIds);
+      } catch (e) {
+        console.error('Error parseando patientIds:', e);
+        userData.patientIds = [];
+      }
+    }
+
+    // No devolver el password al frontend
+    delete userData.password;
+
+    return userData;
   }
 }

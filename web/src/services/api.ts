@@ -132,6 +132,11 @@ export const apiService = {
     getQRCode: (id: string): string => {
       return `${API_CONFIG.BASE_URL}/patients/${id}/qr`
     },
+
+    getName: async (id: string): Promise<string> => {
+      const { data } = await api.get(`/patients/${id}/name`)
+      return data.name
+    },
   },
 
   // ==================== PATIENT NOTES ====================

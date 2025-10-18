@@ -42,9 +42,10 @@ export class PatientsController {
     return this.patientsService.findByRut(rut);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.patientsService.findOne(id);
+  @Get(':id/name')
+  async getPatientName(@Param('id') id: string) {
+    const name = await this.patientsService.getPatientName(id);
+    return { name };
   }
 
   @Get(':id/qr')
@@ -69,6 +70,11 @@ export class PatientsController {
   @Get(':id/documents')
   async getPatientDocuments(@Param('id') id: string) {
     return this.patientsService.findPatientDocuments(id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.patientsService.findOne(id);
   }
 
   @Put(':id')

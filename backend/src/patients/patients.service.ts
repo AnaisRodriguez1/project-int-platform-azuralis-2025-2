@@ -143,6 +143,16 @@ export class PatientsService {
     return qrCodeDataURL;
   }
 
+  async saveScanHistory(patientId: string, patientRut: string) {
+    const patient = await this.findOne(patientId);
+    return {
+      patientId,
+      patientRut: patientRut.toUpperCase(),
+      patientName: patient.name,
+      searchedAt: new Date(),
+    };
+  }
+
   async findPatientNotes(patientId: string) {
     // Buscar todas las notas del paciente ordenadas por fecha
     const notes = await this.notesRepo.find({
@@ -159,5 +169,23 @@ export class PatientsService {
       order: { uploadDate: 'DESC' },
     });
     return documents;
+  }
+
+  async getScanHistory(patientId: string) {
+    // TODO: Implementar sin ScanHistory entity
+    return [];
+  }
+
+  async getPatientName(patientId: string): Promise<string> {
+    const patient = await this.patientRepo.findOne({
+      where: { id: patientId.toUpperCase() }, // Convertir a MAYÚSCULAS para buscar en BD
+      select: ['name'],
+    });
+    
+    if (!patient) {
+      throw new NotFoundException('Paciente no encontrado');
+    }
+    
+    return patient.name;
   }
 }

@@ -111,13 +111,14 @@ export function DashboardClinicalStaff() {
   };
 
   const onTabChange = (tabId: string) => {
+    setActiveTab(tabId); // Siempre actualizar el tab activo
+    
     if (tabId === "search") {
       setShowSearch(true);
       setSelectedPatient(null);
     } else {
       setShowSearch(false);
       setSelectedPatient(null);
-      setActiveTab(tabId);
     }
   };
 
@@ -144,23 +145,41 @@ export function DashboardClinicalStaff() {
     setActiveTab("careTeam");
   };
 
-  // Si está buscando, mostrar el buscador
+  // Si está buscando, mostrar el buscador CON bottom navigation
   if (showSearch) {
     return (
-      <SearchPatientByRut
-        onPatientFound={handlePatientFound}
-        onBack={handleBackFromSearch}
-      />
+      <div className="min-h-screen bg-gray-50">
+        <SearchPatientByRut
+          onPatientFound={handlePatientFound}
+          onBack={handleBackFromSearch}
+        />
+        {/* Bottom Navigation */}
+        <BottomNavigation
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          accentColor={accentColor}
+          tabs={clinicalStaffTabs}
+        />
+      </div>
     );
   }
 
-  // Si seleccionó un paciente, mostrar su ficha
+  // Si seleccionó un paciente, mostrar su ficha CON bottom navigation
   if (selectedPatient) {
     return (
-      <PatientRecord 
-        patient={selectedPatient} 
-        onBack={handleBackFromRecord} 
-      />
+      <div className="min-h-screen bg-gray-50">
+        <PatientRecord 
+          patient={selectedPatient} 
+          onBack={handleBackFromRecord} 
+        />
+        {/* Bottom Navigation */}
+        <BottomNavigation
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          accentColor={accentColor}
+          tabs={clinicalStaffTabs}
+        />
+      </div>
     );
   }
 
