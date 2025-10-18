@@ -46,9 +46,9 @@ export class User {
   @Column('text', { nullable: true })
   patientIds?: string; // JSON string de IDs de pacientes a cargo
 
-  // 👩‍⚕️ CLÍNICO
+  // 👨‍⚕️ STAFF CLÍNICO (doctor/nurse)
   @Column('text', { nullable: true })
-  scanHistory?: string; // JSON string de { patientId: string; scannedAt: Date }[]
+  scanHistory?: string; // JSON string de { patientId: string; patientRut: string; searchedAt: Date }[]
 
   // 🧑 PACIENTE
   @Column({ nullable: true })

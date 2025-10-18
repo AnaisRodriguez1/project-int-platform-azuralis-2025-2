@@ -7,11 +7,14 @@ import {
   Delete,
   Put,
   Res,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { Patient } from './entities/patient.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('patients')
 export class PatientsController {
@@ -27,9 +30,22 @@ export class PatientsController {
     return this.patientsService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.patientsService.findOne(id);
+  @Get('my-care-team/patients')
+  @UseGuards(JwtAuthGuard)
+  findMyCareTeamPatients(@Req() req: Request) {
+    const userId = (req.user as any).id;
+    return this.patientsService.findMyCareTeamPatients(userId);
+  }
+
+  @Get('search/by-rut/:rut')
+  findByRut(@Param('rut') rut: string) {
+    return this.patientsService.findByRut(rut);
+  }
+
+  @Get(':id/name')
+  async getPatientName(@Param('id') id: string) {
+    const name = await this.patientsService.getPatientName(id);
+    return { name };
   }
 
   @Get(':id/qr')
@@ -44,6 +60,21 @@ export class PatientsController {
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Length', imageBuffer.length);
     res.send(imageBuffer);
+  }
+
+  @Get(':id/notes')
+  async getPatientNotes(@Param('id') id: string) {
+    return this.patientsService.findPatientNotes(id);
+  }
+
+  @Get(':id/documents')
+  async getPatientDocuments(@Param('id') id: string) {
+    return this.patientsService.findPatientDocuments(id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.patientsService.findOne(id);
   }
 
   @Put(':id')

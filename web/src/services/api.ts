@@ -73,6 +73,14 @@ export const apiService = {
       const { data } = await api.put(`/users/${userId}`, userData)
       return data
     },
+
+    addSearchHistory: async (userId: string, patientId: string, patientRut: string): Promise<any> => {
+      const { data } = await api.post(`/users/${userId}/search-history`, {
+        patientId,
+        patientRut,
+      })
+      return data
+    },
   },
 
   // ==================== PATIENTS ====================
@@ -84,6 +92,16 @@ export const apiService = {
 
     getAll: async (): Promise<Patient[]> => {
       const { data } = await api.get("/patients")
+      return data
+    },
+
+    getMyCareTeam: async (): Promise<Patient[]> => {
+      const { data } = await api.get("/patients/my-care-team/patients")
+      return data
+    },
+
+    findByRut: async (rut: string): Promise<Patient> => {
+      const { data } = await api.get(`/patients/search/by-rut/${rut}`)
       return data
     },
 
@@ -101,8 +119,23 @@ export const apiService = {
       await api.delete(`/patients/${id}`)
     },
 
+    getNotes: async (patientId: string): Promise<PatientNote[]> => {
+      const { data } = await api.get(`/patients/${patientId}/notes`)
+      return data
+    },
+
+    getDocuments: async (patientId: string): Promise<PatientDocument[]> => {
+      const { data } = await api.get(`/patients/${patientId}/documents`)
+      return data
+    },
+
     getQRCode: (id: string): string => {
       return `${API_CONFIG.BASE_URL}/patients/${id}/qr`
+    },
+
+    getName: async (id: string): Promise<string> => {
+      const { data } = await api.get(`/patients/${id}/name`)
+      return data.name
     },
   },
 
@@ -170,6 +203,19 @@ export const apiService = {
     getByPatient: async (patientId: string): Promise<CareTeamMember[]> => {
       const { data } = await api.get(`/care-team/by-patient/${patientId}`)
       return data
+    },
+
+    addToPatient: async (patientId: string, userId: string, name: string, role: string): Promise<CareTeamMember> => {
+      const { data } = await api.post(`/care-team/patient/${patientId}/member`, {
+        userId,
+        name,
+        role,
+      })
+      return data
+    },
+
+    removeFromPatient: async (patientId: string, userId: string): Promise<void> => {
+      await api.delete(`/care-team/patient/${patientId}/member/${userId}`)
     },
 
     update: async (id: string, memberData: Partial<CareTeamMember>): Promise<CareTeamMember> => {

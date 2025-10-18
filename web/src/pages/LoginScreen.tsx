@@ -8,7 +8,6 @@ import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { getDashboardRoute } from "@/common/helpers/GetDashboardRoute";
 
 export function LoginScreen() {
     const navigate = useNavigate();
@@ -48,10 +47,11 @@ export function LoginScreen() {
         setIsLoading(true);
 
         try {
-            const user = await login(email.trim(), password);
-            // Redirigir al dashboard correspondiente según el role del usuario
-            const dashboardRoute = getDashboardRoute(user.role);
-            navigate(dashboardRoute);
+            await login(email.trim(), password);
+            
+            // Después del login exitoso, navegar a la raíz
+            // HomePage detectará isAuthenticated y redirigirá al dashboard correcto
+            navigate('/', { replace: true });
         } catch (err: any) {
             // Manejo específico de errores del backend
             if (err.response) {
@@ -197,15 +197,15 @@ export function LoginScreen() {
                             </div>
                             <div className="flex justify-between">
                                 <span className="font-medium">Paciente:</span>
-                                <span>juan.perez@email.cl</span>
+                                <span>sofia.ramirez@email.cl</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="font-medium">Familiar:</span>
-                                <span>maria.lopez@email.cl</span>
+                                <span className="font-medium">Paciente:</span>
+                                <span>pedro.flores@email.cl</span>
                             </div>
                         </div>
                         <p className="mt-2 text-xs text-blue-700 italic">
-                            💡 Contraseña para todos: password123
+                            💡 Contraseña para todos: Doctor123! / Nurse123! / Patient123!
                         </p>
                     </AlertDescription>
                 </Alert>

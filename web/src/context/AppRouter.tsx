@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { DashboardDoctor } from "../pages/Doctor/DashboardDoctor";
+import { DashboardClinicalStaff } from "../pages/ClinicalStaff/DashboardClinicalStaff";
 import { DashboardPatient } from "../pages/Patient/DashboardPatient";
 import { DashboardGuardian } from "../pages/Guardian/DashboardGuardian";
-import { DashboardNurse } from "../pages/Nurse/DashboardNurse";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { HomePage } from "../pages/HomePage";
 import { RegisterScreen } from "../pages/RegisterScreen";
@@ -18,11 +17,20 @@ export function AppRouter() {
                 <Route path="/register" element={<RegisterScreen />} />
 
                 {/* Rutas protegidas - Dashboards */}
+                {/* Dashboard unificado para Doctor y Enfermera */}
                 <Route
                     path="/dashboard-doctor"
                     element={
                         <ProtectedRoute>
-                            <DashboardDoctor />
+                            <DashboardClinicalStaff />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard-nurse"
+                    element={
+                        <ProtectedRoute>
+                            <DashboardClinicalStaff />
                         </ProtectedRoute>
                     }
                 />
@@ -39,14 +47,6 @@ export function AppRouter() {
                     element={
                         <ProtectedRoute>
                             <DashboardGuardian />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/dashboard-nurse"
-                    element={
-                        <ProtectedRoute>
-                            <DashboardNurse />
                         </ProtectedRoute>
                     }
                 />

@@ -26,12 +26,22 @@ const AuthProvider = ({children}: {children:React.ReactNode}) => {
         setIsLoading(true)
         try {
             const token = localStorage.getItem("token")
-            if (token) {
-                const userData = await apiService.checkAuthStatus()
-                setUser(userData)
+            if (!token) {
+                // No hay token, usuario no autenticado
+                setUser(null)
+                setIsLoading(false)
+                return
             }
+            
+            // Verificar que el token sea válido
+            const userData = await apiService.checkAuthStatus()
+            setUser(userData)
+            // Actualizar localStorage con datos frescos
+            localStorage.setItem("user", JSON.stringify(userData))
         } catch (error) {
-            // Token inválido, limpiar
+            // Token inválido o expirado, limpiar todo
+            console.error('Error verificando autenticación:', error)
+            setUser(null)
             localStorage.removeItem("token")
             localStorage.removeItem("user")
         } finally {
@@ -46,16 +56,21 @@ const AuthProvider = ({children}: {children:React.ReactNode}) => {
             // Guardamos el token (puede venir como access_token o token)
             const token = (data as any).access_token || (data as any).token;
             localStorage.setItem("token", token)
+            
             // Obtener los datos completos del usuario
             const userData = await apiService.checkAuthStatus()
-            setUser(userData)
+            
             // Guardar usuario en localStorage para acceso inmediato
             localStorage.setItem("user", JSON.stringify(userData))
+            
+            // Actualizar el estado del usuario
+            setUser(userData)
+            setIsLoading(false)
+            
             return userData
         } catch (error) {
-            throw error
-        } finally {
             setIsLoading(false)
+            throw error
         }
     }
 
