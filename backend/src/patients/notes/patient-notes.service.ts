@@ -23,6 +23,17 @@ export class PatientNotesService {
     return this.notesRepo.findOne({ where: { id } });
   }
 
+  async update(id: string, noteData: Partial<PatientNote>) {
+    const note = await this.notesRepo.findOne({ where: { id } });
+    if (!note) {
+      throw new Error('Nota no encontrada');
+    }
+    
+    // Actualizar solo los campos proporcionados
+    Object.assign(note, noteData);
+    return this.notesRepo.save(note);
+  }
+
   async delete(id: string) {
     const note = await this.notesRepo.findOne({ where: { id } });
     if (!note) return { message: 'Nota no encontrada' };

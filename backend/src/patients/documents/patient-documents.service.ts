@@ -23,6 +23,17 @@ export class PatientDocumentsService {
     return this.docsRepo.findOne({ where: { id } });
   }
 
+  async update(id: string, docData: Partial<PatientDocument>) {
+    const doc = await this.docsRepo.findOne({ where: { id } });
+    if (!doc) {
+      throw new Error('Documento no encontrado');
+    }
+    
+    // Actualizar solo los campos proporcionados
+    Object.assign(doc, docData);
+    return this.docsRepo.save(doc);
+  }
+
   async delete(id: string) {
     const doc = await this.docsRepo.findOne({ where: { id } });
     if (!doc) return { message: 'Documento no encontrado' };

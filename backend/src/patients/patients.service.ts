@@ -124,9 +124,51 @@ export class PatientsService {
   }
 
   async update(id: string, data: Partial<Patient>) {
-    const patient = await this.findOne(id);
-    Object.assign(patient, data);
-    return await this.patientRepo.save(patient);
+    console.log('🔍 UPDATE - Received data:', JSON.stringify(data, null, 2));
+    console.log('🔍 UPDATE - Patient ID:', id);
+    
+    try {
+      // Convertir arrays a JSON strings - SOLO los que vienen en data
+      const processedData = { ...data };
+      
+      if ('allergies' in processedData && Array.isArray(processedData.allergies)) {
+        processedData.allergies = processedData.allergies.length > 0 
+          ? JSON.stringify(processedData.allergies) as any
+          : '[]' as any;
+        console.log('🔄 Converted allergies to:', processedData.allergies);
+      }
+      
+      if ('currentMedications' in processedData && Array.isArray(processedData.currentMedications)) {
+        processedData.currentMedications = processedData.currentMedications.length > 0
+          ? JSON.stringify(processedData.currentMedications) as any
+          : '[]' as any;
+        console.log('🔄 Converted currentMedications to:', processedData.currentMedications);
+      }
+      
+      // Construir UPDATE SQL manualmente
+      const fields = Object.keys(processedData).filter(key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam');
+      
+      if (fields.length > 0) {
+        const setClause = fields.map((field, idx) => `[${field}] = @${idx}`).join(', ');
+        const values = fields.map(field => processedData[field]);
+        
+        const sql = `UPDATE [patients] SET ${setClause} WHERE [id] = @${fields.length}`;
+        console.log('🔧 SQL:', sql);
+        console.log('🔧 Values:', values);
+        
+        await this.patientRepo.query(sql, [...values, id]);
+        console.log('✅ Raw SQL update successful');
+      }
+      
+      // Ahora cargar el paciente actualizado para retornarlo
+      const result = await this.findOne(id);
+      console.log('✅ Patient reloaded');
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error in update:', error);
+      throw error;
+    }
   }
 
   async remove(id: string) {
