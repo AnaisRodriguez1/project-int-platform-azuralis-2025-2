@@ -41,4 +41,48 @@ export class CareTeamService {
     await this.careTeamRepo.remove(member);
     return { message: 'Miembro eliminado correctamente' };
   }
+
+  async addMemberToPatient(patientId: string, userId: string, name: string, role: string) {
+    // Verificar si ya existe
+    const existing = await this.careTeamRepo.findOne({
+      where: { 
+        patient: { id: patientId },
+        userId,
+        status: 'active'
+      }
+    });
+
+    if (existing) {
+      return { message: 'El usuario ya es miembro del equipo' };
+    }
+
+    const member = this.careTeamRepo.create({
+      userId,
+      name,
+      role: role as any,
+      status: 'active',
+      patient: { id: patientId } as any,
+    });
+
+    return this.careTeamRepo.save(member);
+  }
+
+  async removeMemberFromPatient(patientId: string, userId: string) {
+    const member = await this.careTeamRepo.findOne({
+      where: { 
+        patient: { id: patientId },
+        userId,
+      }
+    });
+
+    if (!member) {
+      return { message: 'Miembro no encontrado' };
+    }
+
+    // Marcar como inactivo en lugar de eliminar (para mantener historial)
+    member.status = 'inactive';
+    await this.careTeamRepo.save(member);
+
+    return { message: 'Miembro removido del equipo' };
+  }
 }

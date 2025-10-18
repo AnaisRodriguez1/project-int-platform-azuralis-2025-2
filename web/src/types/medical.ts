@@ -148,9 +148,10 @@ export const getDocumentTypeLabel = (type: DocumentType): string => {
 
 // --- INTERFACES DE USUARIO (Simplificadas y limpias) ---
 
-export interface ScanRecord {
+export interface SearchRecord {
   patientId: string;
-  scannedAt: Date;
+  patientRut: string;
+  searchedAt: Date;
 }
 
 // Base para todos los usuarios.
@@ -165,7 +166,7 @@ interface BaseUser {
 // Base para personal clínico para no repetir código.
 interface ClinicalStaffUser extends BaseUser {
   role: 'doctor' | 'nurse';
-  scanHistory?: ScanRecord[];
+  searchHistory?: SearchRecord[]; // Historial de búsquedas por RUT
   assignedPatients?: string[];
 }
 

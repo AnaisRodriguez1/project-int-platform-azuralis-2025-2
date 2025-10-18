@@ -1,4 +1,4 @@
-import { Home, StickyNote, FolderOpen, Settings, Users, Calendar, Activity, ScanLine } from "lucide-react";
+import { Home, StickyNote, FolderOpen, Settings, Users, Calendar, Search } from "lucide-react";
 import type { NavTab } from "@/components/BottomNavigation";
 
 // Tabs para Paciente
@@ -9,22 +9,19 @@ export const patientTabs: NavTab[] = [
   { id: 'profile', icon: Settings, label: 'Perfil' }
 ];
 
-// Tabs para Doctor
-export const doctorTabs: NavTab[] = [
+// Tabs para Personal Clínico (Doctor y Enfermera/o)
+export const clinicalStaffTabs: NavTab[] = [
   { id: 'home', icon: Home, label: 'Inicio' },
-  { id: 'patients', icon: Users, label: 'Pacientes' },
-  { id: 'scanner', icon: ScanLine, label: 'Escáner' },
+  { id: 'careTeam', icon: Users, label: 'Equipo de Cuidados' },
+  { id: 'search', icon: Search, label: 'Búsqueda' },
   { id: 'profile', icon: Settings, label: 'Perfil' }
 ];
 
-// Tabs para Enfermera/o
-export const nurseTabs: NavTab[] = [
-  { id: 'home', icon: Home, label: 'Inicio' },
-  { id: 'patients', icon: Users, label: 'Pacientes' },
-  { id: 'tasks', icon: Activity, label: 'Tareas' },
-  { id: 'notes', icon: StickyNote, label: 'Notas' },
-  { id: 'profile', icon: Settings, label: 'Perfil' }
-];
+// Tabs para Doctor (DEPRECADO - usar clinicalStaffTabs)
+export const doctorTabs: NavTab[] = clinicalStaffTabs;
+
+// Tabs para Enfermera/o (DEPRECADO - usar clinicalStaffTabs)
+export const nurseTabs: NavTab[] = clinicalStaffTabs;
 
 // Tabs para Guardian/Tutor
 export const guardianTabs: NavTab[] = [

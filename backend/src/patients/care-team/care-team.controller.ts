@@ -35,4 +35,27 @@ export class CareTeamController {
   async remove(@Param('id') id: string) {
     return this.careTeamService.remove(id);
   }
+
+  // Agregar un miembro al equipo de un paciente específico
+  @Post('patient/:patientId/member')
+  async addMemberToPatient(
+    @Param('patientId') patientId: string,
+    @Body() body: { userId: string; name: string; role: string }
+  ) {
+    return this.careTeamService.addMemberToPatient(
+      patientId, 
+      body.userId, 
+      body.name, 
+      body.role
+    );
+  }
+
+  // Remover un miembro del equipo de un paciente específico
+  @Delete('patient/:patientId/member/:userId')
+  async removeMemberFromPatient(
+    @Param('patientId') patientId: string,
+    @Param('userId') userId: string
+  ) {
+    return this.careTeamService.removeMemberFromPatient(patientId, userId);
+  }
 }

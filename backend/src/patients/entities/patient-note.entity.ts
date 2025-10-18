@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { Patient } from './patient.entity';
 import { User } from '../../auth/entities/user.entity';
 
@@ -7,14 +7,11 @@ export class PatientNote {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  title: string;
-
   @Column({ type: 'text' })
   content: string;
 
-  @Column()
-  date: string; 
+  @CreateDateColumn()
+  createdAt: Date;
 
   @Column()
   patientId: string; // FK explícita, útil para queries rápidas

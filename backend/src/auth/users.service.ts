@@ -38,4 +38,36 @@ export class UsersService {
     const { password, ...userWithoutPassword } = updated;
     return userWithoutPassword as User;
   }
+
+  async addSearchHistory(userId: string, patientId: string, patientRut: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Parse existing search history
+    let searchHistory: any[] = [];
+    try {
+      searchHistory = user.scanHistory ? JSON.parse(user.scanHistory) : [];
+    } catch {
+      searchHistory = [];
+    }
+
+    // Add new search record
+    const newRecord = {
+      patientId,
+      patientRut,
+      searchedAt: new Date().toISOString(),
+    };
+
+    // Limit to last 50 searches
+    searchHistory = [newRecord, ...searchHistory].slice(0, 50);
+
+    // Save back
+    user.scanHistory = JSON.stringify(searchHistory);
+    const updated = await this.userRepo.save(user);
+
+    const { password, ...userWithoutPassword } = updated;
+    return userWithoutPassword as User;
+  }
 }
