@@ -14,6 +14,7 @@ import { PatientsService } from './patients.service';
 import { CareTeamMember } from './entities/care-team-member.entity';
 import { CareTeamController } from './care-team/care-team.controller';
 import { CareTeamService } from './care-team/care-team.service';
+import { AzureStorageService } from '../shared/services/azure-storage.service';
 
 @Module({
   imports: [
@@ -27,6 +28,6 @@ import { CareTeamService } from './care-team/care-team.service';
     ]),
   ],
   controllers: [PatientsController, PatientNotesController, PatientDocumentsController, CareTeamController],
-  providers: [PatientsService, PatientNotesService, PatientDocumentsService, CareTeamService],
+  providers: [PatientsService, PatientNotesService, PatientDocumentsService, CareTeamService, AzureStorageService],
 })
 export class PatientsModule {}

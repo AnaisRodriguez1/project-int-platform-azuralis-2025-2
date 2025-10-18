@@ -89,7 +89,7 @@ export interface PatientDocument {
   id: string;
   title: string;
   type: DocumentType;
-  url: string;
+  url: string; // URL del archivo en Azure Blob Storage (se genera automáticamente al subir)
   uploadDate: string;
   patientId: string;
   uploaderId: string;
