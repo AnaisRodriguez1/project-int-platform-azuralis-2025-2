@@ -59,6 +59,7 @@ export interface PatientDocument {
   uploadDate: string;
   patientId: string;
   uploaderId: string;
+  description?: string;
 }
 
 // --- Interfaces relacionadas al Usuario y Permisos ---
@@ -153,4 +154,10 @@ export const cancerColors: Record<CancerType, { color: string; name: string }> =
   testicular: { color: '#da70d6', name: 'Testicular' },
   renal: { color: '#ff8c00', name: 'Renal' },
   hepatic: { color: '#50c878', name: 'Hepático' },
+};
+
+// --- Colores extendidos para incluir el caso "other" ---
+export const cancerColorsExtended: Record<CancerType | 'other', { color: string; name: string }> = {
+  ...cancerColors,
+  other: { color: '#999999', name: 'No especificado' },
 };

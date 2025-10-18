@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🩺 Pantallas hijas (por ahora placeholders)
 //import NotesPatient from '../pages/Patient/Notes';
-//import DocumentsPatient from '../pages/Patient/Documents';
+import DocumentsPatient from '../../pages/Patient/Documents';
 import ProfilePatient from '../../pages/Patient/Profile';
 
 export default function DashboardPatient() {
@@ -27,9 +27,9 @@ export default function DashboardPatient() {
       case 'home':
         return <HomePatient />;
       /*case 'notes':
-        return <NotesPatient />;
+        return <NotesPatient />;*/
       case 'documents':
-        return <DocumentsPatient />; */
+        return <DocumentsPatient />; 
       case 'profile':
         return <ProfilePatient />;
       default:
