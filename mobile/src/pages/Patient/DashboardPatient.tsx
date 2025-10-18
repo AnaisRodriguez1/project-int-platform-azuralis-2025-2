@@ -5,8 +5,8 @@ import HomePatient from '../../pages/Patient/Home';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 🩺 Pantallas hijas (por ahora placeholders)
-//import NotesPatient from '../pages/Patient/Notes';
+// Pantallas hijas 
+import NotesPatient from '../../pages/Patient/Notes';
 import DocumentsPatient from '../../pages/Patient/Documents';
 import ProfilePatient from '../../pages/Patient/Profile';
 
@@ -21,13 +21,13 @@ export default function DashboardPatient() {
     navigation.navigate('Login');
   };
 
-  // Renderiza la sección según la tab activa
+ 
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
         return <HomePatient />;
-      /*case 'notes':
-        return <NotesPatient />;*/
+      case 'notes':
+        return <NotesPatient />;
       case 'documents':
         return <DocumentsPatient />; 
       case 'profile':
