@@ -84,7 +84,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState("");
   const [newDocType, setNewDocType] = useState<string>("examen");
-  const [newDocUrl, setNewDocUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null); // ✅ Archivo real
   const [newDocDescription, setNewDocDescription] = useState("");
 
   // Función para verificar si puede editar un campo
@@ -455,8 +455,8 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
   };
 
   const uploadDocument = async () => {
-    if (!newDocTitle.trim() || !newDocUrl.trim()) {
-      alert("Por favor completa título y URL del documento");
+    if (!newDocTitle.trim() || !selectedFile) {
+      alert("Por favor completa el título y selecciona un archivo");
       return;
     }
 
@@ -469,14 +469,13 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
         uploaderId: user.id,
         title: newDocTitle,
         type: newDocType as any,
-        url: newDocUrl,
         description: newDocDescription,
         uploadDate: new Date().toISOString(),
-      });
+      }, selectedFile); // ✅ Enviar el archivo real
       
       setDocuments([newDoc, ...documents]);
       setNewDocTitle("");
-      setNewDocUrl("");
+      setSelectedFile(null);
       setNewDocDescription("");
       setUploadingDoc(false);
       alert("✅ Documento subido exitosamente");
@@ -485,6 +484,31 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
       alert("❌ Error al subir el documento");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Función para manejar la selección de archivos
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tamaño (máx 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert('El archivo es muy grande. El tamaño máximo es 10MB.');
+      return;
+    }
+
+    // Validar tipo de archivo
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, GIF) y PDF.');
+      return;
+    }
+
+    setSelectedFile(file);
+    if (!newDocTitle.trim()) {
+      setNewDocTitle(file.name.split('.')[0]);
     }
   };
 
@@ -501,6 +525,30 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
       alert("❌ Error al eliminar el documento");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOpenDocument = async (docId: string) => {
+    try {
+      console.log('📄 Solicitando URL para documento:', docId);
+      // Obtener URL temporal con SAS token
+      const { url } = await apiService.documents.getDownloadUrl(docId);
+      console.log('✅ URL con SAS token obtenida:', url);
+      
+      // Intentar abrir en nueva pestaña
+      const newWindow = window.open(url, "_blank");
+      
+      // Verificar si el navegador bloqueó el pop-up
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        console.warn('⚠️ Pop-up bloqueado. Abriendo en el mismo tab...');
+        // Alternativa: Abrir en el mismo tab
+        window.location.href = url;
+      } else {
+        console.log('✅ Documento abierto en nueva pestaña');
+      }
+    } catch (error) {
+      console.error('❌ Error al abrir documento:', error);
+      alert("❌ Error al abrir el documento. Por favor intenta de nuevo.");
     }
   };
 
@@ -1093,12 +1141,30 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                         <option value="consentimiento">Consentimiento</option>
                         <option value="otro">Otro</option>
                       </select>
-                      <Input
-                        value={newDocUrl}
-                        onChange={(e) => setNewDocUrl(e.target.value)}
-                        placeholder="URL del documento"
-                        className="bg-white"
-                      />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Archivo</label>
+                        <input
+                          type="file"
+                          id="file-upload-record"
+                          accept="image/*,.pdf"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => document.getElementById('file-upload-record')?.click()}
+                          type="button"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          {selectedFile ? `📁 ${selectedFile.name}` : 'Seleccionar archivo'}
+                        </Button>
+                        {selectedFile && (
+                          <p className="text-xs text-gray-500">
+                            Tamaño: {(selectedFile.size / 1024).toFixed(1)} KB
+                          </p>
+                        )}
+                      </div>
                       <Textarea
                         value={newDocDescription}
                         onChange={(e) => setNewDocDescription(e.target.value)}
@@ -1107,14 +1173,18 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                         className="bg-white"
                       />
                       <div className="flex gap-2">
-                        <Button onClick={uploadDocument} disabled={saving} className="flex-1">
+                        <Button 
+                          onClick={uploadDocument} 
+                          disabled={saving || !selectedFile} 
+                          className="flex-1"
+                        >
                           <Save className="w-4 h-4 mr-2" />
-                          Guardar Documento
+                          {saving ? 'Subiendo...' : 'Guardar Documento'}
                         </Button>
                         <Button variant="outline" onClick={() => {
                           setUploadingDoc(false);
                           setNewDocTitle("");
-                          setNewDocUrl("");
+                          setSelectedFile(null);
                           setNewDocDescription("");
                         }}>
                           <X className="w-4 h-4 mr-2" />
@@ -1165,7 +1235,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      <Button variant="outline" className="w-full" onClick={() => window.open(doc.url, "_blank")}>
+                      <Button variant="outline" className="w-full" onClick={() => handleOpenDocument(doc.id)}>
                         <FileText className="w-4 h-4 mr-2" />
                         Ver Documento
                       </Button>

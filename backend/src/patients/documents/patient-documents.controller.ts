@@ -1,4 +1,16 @@
-import { Controller, Post, Body, Get, Param, Delete, Put } from '@nestjs/common';
+import { 
+  Controller, 
+  Post, 
+  Body, 
+  Get, 
+  Param, 
+  Delete, 
+  Put, 
+  UseInterceptors, 
+  UploadedFile, 
+  BadRequestException 
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PatientDocumentsService } from './patient-documents.service';
 import { PatientDocument } from '../entities/patient-document.entity';
 
@@ -7,8 +19,15 @@ export class PatientDocumentsController {
   constructor(private readonly docsService: PatientDocumentsService) {}
 
   @Post()
-  async create(@Body() docData: Partial<PatientDocument>) {
-    return this.docsService.create(docData);
+  @UseInterceptors(FileInterceptor('file'))
+  async create(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() docData: Partial<PatientDocument>,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No se ha proporcionado un archivo');
+    }
+    return this.docsService.create(docData, file);
   }
 
   @Get()
@@ -29,5 +48,10 @@ export class PatientDocumentsController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return this.docsService.delete(id);
+  }
+
+  @Get(':id/download-url')
+  async getDownloadUrl(@Param('id') id: string) {
+    return this.docsService.generateDownloadUrl(id);
   }
 }

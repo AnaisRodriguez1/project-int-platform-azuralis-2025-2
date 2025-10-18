@@ -120,6 +120,30 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
     return roleNames[role] || role;
   };
 
+  const handleOpenDocument = async (docId: string) => {
+    try {
+      console.log('📄 Solicitando URL para documento:', docId);
+      // Obtener URL temporal con SAS token
+      const { url } = await apiService.documents.getDownloadUrl(docId);
+      console.log('✅ URL con SAS token obtenida:', url);
+      
+      // Intentar abrir en nueva pestaña
+      const newWindow = window.open(url, "_blank");
+      
+      // Verificar si el navegador bloqueó el pop-up
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        console.warn('⚠️ Pop-up bloqueado. Abriendo en el mismo tab...');
+        // Alternativa: Abrir en el mismo tab
+        window.location.href = url;
+      } else {
+        console.log('✅ Documento abierto en nueva pestaña');
+      }
+    } catch (error) {
+      console.error('❌ Error al abrir documento:', error);
+      alert("❌ Error al abrir el documento. Por favor intenta de nuevo.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -444,7 +468,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => window.open(doc.url, "_blank")}
+                        onClick={() => handleOpenDocument(doc.id)}
                       >
                         <FileText className="w-4 h-4 mr-2" />
                         Ver Documento

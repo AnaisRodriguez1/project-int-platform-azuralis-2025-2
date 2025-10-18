@@ -30,6 +30,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   const [selectedDocument, setSelectedDocument] = useState<PatientDocument | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Validar si una URL es válida y accesible
   const isValidImageUrl = (url: string | undefined): boolean => {
@@ -73,36 +74,30 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   };
 
   const handleAddDocument = async () => {
-    if (!newDocTitle.trim() || !user || !patientId) return;
+    if (!newDocTitle.trim() || !user || !patientId || !selectedFile) {
+      alert('Por favor completa todos los campos y selecciona un archivo');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // URL placeholder para documentos médicos (usar imágenes de Unsplash válidas)
-      const mockUrls = [
-        'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=400&h=400&fit=crop',
-        'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=400&h=400&fit=crop',
-      ];
-      const mockUrl = mockUrls[Math.floor(Math.random() * mockUrls.length)];
-
       await apiService.documents.create({
         title: newDocTitle,
         type: newDocType,
-        url: mockUrl,
         patientId: patientId,
         uploaderId: user.id,
         uploadDate: new Date().toISOString()
-      });
+      }, selectedFile);
 
       loadDocuments();
       setNewDocTitle('');
       setNewDocType('examen');
+      setSelectedFile(null);
       // setNewDocDescription(''); // TODO: Descomentar cuando se habilite description
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error al subir documento:', error);
-      alert('Error al subir el documento');
+      alert('Error al subir el documento. Por favor intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -127,15 +122,45 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // En producción aquí subirías el archivo al servidor
-    console.log('Archivo seleccionado:', file.name);
-    setNewDocTitle(file.name.split('.')[0]);
+    // Validar tamaño del archivo (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert('El archivo es muy grande. El tamaño máximo es 10MB.');
+      return;
+    }
+
+    // Validar tipo de archivo
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Tipo de archivo no permitido. Solo se permiten imágenes (JPG, PNG, GIF) y PDF.');
+      return;
+    }
+
+    setSelectedFile(file);
+    // Usar el nombre del archivo como título si no hay uno
+    if (!newDocTitle.trim()) {
+      setNewDocTitle(file.name.split('.')[0]);
+    }
   };
 
   const takePhoto = () => {
-    // En producción aquí activarías la cámara del dispositivo
-    console.log('Activar cámara');
-    setNewDocTitle('Foto tomada ' + new Date().toLocaleTimeString());
+    // Crear un input invisible para capturar la foto desde la cámara
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment'; // Usar cámara trasera en móviles
+    
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setSelectedFile(file);
+        if (!newDocTitle.trim()) {
+          setNewDocTitle('Foto ' + new Date().toLocaleTimeString());
+        }
+      }
+    };
+    
+    input.click();
   };
 
   const formatDate = (dateString: string) => {
@@ -483,6 +508,29 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
               </div>
             </div>
 
+            {/* Mostrar archivo seleccionado */}
+            {selectedFile && (
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-blue-900 font-medium">{selectedFile.name}</span>
+                    <span className="text-xs text-blue-600">
+                      ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFile(null)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Quitar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end space-x-2 pt-4">
               <Button 
                 variant="outline" 
@@ -490,6 +538,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
                   setIsDialogOpen(false);
                   setNewDocTitle('');
                   setNewDocType('examen');
+                  setSelectedFile(null);
                   // setNewDocDescription(''); // TODO: Descomentar cuando se habilite description
                 }}
                 disabled={isLoading}
@@ -500,9 +549,9 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
                 onClick={handleAddDocument}
                 style={{ backgroundColor: cancerColor.color }}
                 className="text-white"
-                disabled={!newDocTitle.trim() || isLoading}
+                disabled={!newDocTitle.trim() || !selectedFile || isLoading}
               >
-                {isLoading ? 'Guardando...' : 'Guardar'}
+                {isLoading ? 'Subiendo...' : 'Guardar Documento'}
               </Button>
             </div>
           </div>

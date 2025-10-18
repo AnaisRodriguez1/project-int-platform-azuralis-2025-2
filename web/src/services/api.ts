@@ -168,8 +168,26 @@ export const apiService = {
 
   // ==================== PATIENT DOCUMENTS ====================
   documents: {
-    create: async (docData: Partial<PatientDocument>): Promise<PatientDocument> => {
-      const { data } = await api.post("/patient-documents", docData)
+    create: async (docData: Partial<PatientDocument>, file?: File): Promise<PatientDocument> => {
+      const formData = new FormData()
+      
+      // Agregar el archivo si existe
+      if (file) {
+        formData.append('file', file)
+      }
+      
+      // Agregar los demás datos como campos del FormData
+      Object.entries(docData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value))
+        }
+      })
+
+      const { data } = await api.post("/patient-documents", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
       return data
     },
 
@@ -185,6 +203,11 @@ export const apiService = {
 
     delete: async (id: string): Promise<void> => {
       await api.delete(`/patient-documents/${id}`)
+    },
+
+    getDownloadUrl: async (id: string): Promise<{ id: string; fileName: string; url: string; expiresIn: number; expiresAt: string }> => {
+      const { data } = await api.get(`/patient-documents/${id}/download-url`)
+      return data
     },
   },
 
