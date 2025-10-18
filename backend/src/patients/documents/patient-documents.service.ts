@@ -11,8 +11,21 @@ export class PatientDocumentsService {
   ) {}
 
   async create(docData: Partial<PatientDocument>) {
+    // Normalizar patientId a mayúsculas si existe
+    if (docData.patientId) {
+      docData.patientId = docData.patientId.toUpperCase();
+    }
+    
+    // Asegurar que uploadDate tenga un valor
+    if (!docData.uploadDate) {
+      docData.uploadDate = new Date().toISOString();
+    }
+    
+    console.log('📄 Creating document with patientId:', docData.patientId);
     const doc = this.docsRepo.create(docData);
-    return this.docsRepo.save(doc);
+    const saved = await this.docsRepo.save(doc);
+    console.log('✅ Document created:', saved.id);
+    return saved;
   }
 
   async findAll() {
@@ -21,6 +34,17 @@ export class PatientDocumentsService {
 
   async findOne(id: string) {
     return this.docsRepo.findOne({ where: { id } });
+  }
+
+  async update(id: string, docData: Partial<PatientDocument>) {
+    const doc = await this.docsRepo.findOne({ where: { id } });
+    if (!doc) {
+      throw new Error('Documento no encontrado');
+    }
+    
+    // Actualizar solo los campos proporcionados
+    Object.assign(doc, docData);
+    return this.docsRepo.save(doc);
   }
 
   async delete(id: string) {

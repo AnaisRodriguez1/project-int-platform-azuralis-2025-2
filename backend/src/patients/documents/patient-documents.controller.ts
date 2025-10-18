@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Put } from '@nestjs/common';
 import { PatientDocumentsService } from './patient-documents.service';
 import { PatientDocument } from '../entities/patient-document.entity';
 
@@ -19,6 +19,11 @@ export class PatientDocumentsController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.docsService.findOne(id);
+  }
+
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() docData: Partial<PatientDocument>) {
+    return this.docsService.update(id, docData);
   }
 
   @Delete(':id')

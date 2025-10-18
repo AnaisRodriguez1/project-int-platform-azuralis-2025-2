@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Calendar, Trash2, Eye, FolderOpen, Upload, Camera } from 'lucide-react';
+// import { Textarea } from '@/components/ui/textarea'; // TODO: Descomentar cuando se habilite description
+import { Plus, Calendar, Trash2, Eye, FolderOpen, Upload, Camera, FileText } from 'lucide-react';
 
 interface DocumentsPatientProps {
   hideHeader?: boolean; // Prop para ocultar el header cuando se usa en un wrapper
@@ -26,9 +26,19 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocType, setNewDocType] = useState<DocumentType>('examen');
-  const [newDocDescription, setNewDocDescription] = useState('');
+  // const [newDocDescription, setNewDocDescription] = useState(''); // TODO: Descomentar cuando se habilite description
   const [selectedDocument, setSelectedDocument] = useState<PatientDocument | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  // Validar si una URL es válida y accesible
+  const isValidImageUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+    // Evitar URLs de Azure Blob Storage que no están configuradas
+    if (url.includes('azuralis-docs.blob.core.windows.net')) return false;
+    return true;
+  };
 
   useEffect(() => {
     loadDocuments();
@@ -41,11 +51,11 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   const loadDocuments = async () => {
     if (!patientId) return;
     try {
-      const allDocs = await apiService.documents.getAll();
-      const docs = allDocs.filter(doc => doc.patientId === patientId);
+      const docs = await apiService.patients.getDocuments(patientId);
       setDocuments(docs);
     } catch (error) {
       console.error('Error loading documents:', error);
+      setDocuments([]);
     }
   };
 
@@ -67,8 +77,14 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
 
     setIsLoading(true);
     try {
-      // Simular URL de documento (en producción sería una URL real del servidor)
-      const mockUrl = `https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=300&h=400&fit=crop`;
+      // URL placeholder para documentos médicos (usar imágenes de Unsplash válidas)
+      const mockUrls = [
+        'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=400&h=400&fit=crop',
+      ];
+      const mockUrl = mockUrls[Math.floor(Math.random() * mockUrls.length)];
 
       await apiService.documents.create({
         title: newDocTitle,
@@ -76,13 +92,13 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
         url: mockUrl,
         patientId: patientId,
         uploaderId: user.id,
-        description: newDocDescription
+        uploadDate: new Date().toISOString()
       });
 
       loadDocuments();
       setNewDocTitle('');
       setNewDocType('examen');
-      setNewDocDescription('');
+      // setNewDocDescription(''); // TODO: Descomentar cuando se habilite description
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error al subir documento:', error);
@@ -313,12 +329,23 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
           {filteredDocuments.map((document) => {
             return (
               <Card key={document.id} className="hover:shadow-md transition-shadow overflow-hidden">
-                <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                  <img
-                    src={document.url}
-                    alt={document.title}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="aspect-video bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                  {!imageErrors.has(document.id) && isValidImageUrl(document.url) ? (
+                    <img
+                      src={document.url}
+                      alt={document.title}
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        // Marcar esta imagen como fallida
+                        setImageErrors(prev => new Set(prev).add(document.id));
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <FileText className="w-12 h-12" />
+                      <span className="text-xs mt-2">Documento</span>
+                    </div>
+                  )}
                   <div className="absolute top-2 left-2">
                     <Badge className={getDocumentTypeColor(document.type)}>
                       {getDocumentTypeLabel(document.type)}
@@ -408,6 +435,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
               </Select>
             </div>
 
+            {/* TODO: Descomentar después de ejecutar update-patient-documents-table.sql
             <div className="space-y-2">
               <Label htmlFor="doc-description">Descripción (opcional)</Label>
               <Textarea
@@ -419,6 +447,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
                 rows={2}
               />
             </div>
+            */}
 
             <div className="space-y-3">
               <Label>Agregar archivo</Label>
@@ -461,7 +490,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
                   setIsDialogOpen(false);
                   setNewDocTitle('');
                   setNewDocType('examen');
-                  setNewDocDescription('');
+                  // setNewDocDescription(''); // TODO: Descomentar cuando se habilite description
                 }}
                 disabled={isLoading}
               >
@@ -488,11 +517,37 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
               <DialogTitle>{selectedDocument.title}</DialogTitle>
             </DialogHeader>
             <div className="pt-4 space-y-4">
-              <img
-                src={selectedDocument.url}
-                alt={selectedDocument.title}
-                className="w-full max-h-96 object-contain bg-gray-50 rounded-lg"
-              />
+              {isValidImageUrl(selectedDocument.url) ? (
+                <div className="w-full max-h-96 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
+                  <img
+                    src={selectedDocument.url}
+                    alt={selectedDocument.title}
+                    className="w-full max-h-96 object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div class="flex flex-col items-center justify-center text-gray-400 p-8">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                              <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span class="text-sm mt-4">No se pudo cargar la vista previa</span>
+                            <span class="text-xs text-gray-500 mt-2">El documento puede no estar disponible</span>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full max-h-96 bg-gray-50 rounded-lg flex flex-col items-center justify-center text-gray-400 p-8">
+                  <FileText className="w-16 h-16 mb-4" />
+                  <span className="text-sm">Vista previa no disponible</span>
+                  <span className="text-xs text-gray-500 mt-2">El documento puede no estar configurado</span>
+                </div>
+              )}
               {selectedDocument.description && (
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <p className="text-sm text-gray-700">{selectedDocument.description}</p>

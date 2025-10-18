@@ -65,12 +65,14 @@ export interface Patient {
 
 export interface PatientNote {
   id: string;
-  title: string;
+  title?: string;
   content: string;
-  date: string;
+  date?: string; // Retrocompatibilidad
+  createdAt?: string | Date; // Campo real de la BD
   patientId: string;
   authorId: string;
   authorName: string;
+  authorRole?: string; // Rol del autor para validación de permisos
 }
 
 export type DocumentType = 
@@ -231,16 +233,27 @@ export const DOCTOR_PERMISSIONS: AppPermissions = {
       'operations', 'treatmentSummary','careTeam'
     ]),
   },
-  notes: { create: true, read: true, update: true, delete: true, scope: 'all' },
-  documents: { create: true, read: true, update: true, delete: true, scope: 'all' },
+  notes: { 
+    create: true, 
+    read: true, 
+    update: true,
+    delete: true, 
+    scope: 'all' 
+  },
+  documents: { 
+    create: true, 
+    read: true, 
+    update: true,
+    delete: true, 
+    scope: 'all' 
+  },
 };
 
 export const NURSE_PERMISSIONS: AppPermissions = {
   patientProfile: {
     editableFields: new Set<keyof Patient>([
-      'diagnosis', 'stage', 'cancerType', 
-      'allergies', 'currentMedications', 'emergencyContacts', 
-      'operations', 'treatmentSummary', 'careTeam'
+      'currentMedications',  // Solo puede editar medicamentos y resumen de tratamiento
+      'treatmentSummary'
     ]),
   },
   notes: { create: true, read: true, update: true, delete: false, scope: 'all' },

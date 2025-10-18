@@ -45,31 +45,37 @@ export class PatientsService {
 
 
   async findAll() {
-    const patients = await this.patientRepo.find({
-      relations: ['careTeam', 'emergencyContacts'],
-    });
+    const patients = await this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
+      .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .getMany();
+    
     // Convertir JSON strings a arrays para el frontend
     return patients.map(patient => this.parsePatientData(patient));
   }
 
   async findMyCareTeamPatients(userId: string) {
     // Obtener pacientes donde el usuario está en el careTeam activo
+    // Usamos dos aliases diferentes: uno para filtrar (myMembership) y otro para cargar todos (allMembers)
     const patients = await this.patientRepo
       .createQueryBuilder('patient')
-      .leftJoinAndSelect('patient.careTeam', 'careTeamMember')
+      .innerJoin('patient.careTeam', 'myMembership', 'myMembership.userId = :userId AND myMembership.status = :status', { userId, status: 'active' })
+      .leftJoinAndSelect('patient.careTeam', 'allMembers', 'allMembers.status = :activeStatus', { activeStatus: 'active' })
       .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
-      .where('careTeamMember.userId = :userId', { userId })
-      .andWhere('careTeamMember.status = :status', { status: 'active' })
       .getMany();
     
     return patients.map(patient => this.parsePatientData(patient));
   }
 
   async findOne(id: string) {
-    const patient = await this.patientRepo.findOne({
-      where: { id },
-      relations: ['careTeam', 'emergencyContacts'],
-    });
+    const patient = await this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
+      .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .where('patient.id = :id', { id })
+      .getOne();
+      
     if (!patient) throw new NotFoundException('Patient not found');
     // Convertir JSON strings a arrays para el frontend
     return this.parsePatientData(patient);
@@ -79,9 +85,11 @@ export class PatientsService {
     // Normalizar RUT para búsqueda (quitar puntos y convertir a minúsculas)
     const normalizedRut = rut.replace(/\./g, '').toLowerCase();
     
-    const patients = await this.patientRepo.find({
-      relations: ['careTeam', 'emergencyContacts'],
-    });
+    const patients = await this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
+      .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .getMany();
     
     const patient = patients.find(p => {
       const patientRut = p.rut.replace(/\./g, '').toLowerCase();
@@ -116,9 +124,51 @@ export class PatientsService {
   }
 
   async update(id: string, data: Partial<Patient>) {
-    const patient = await this.findOne(id);
-    Object.assign(patient, data);
-    return await this.patientRepo.save(patient);
+    console.log('🔍 UPDATE - Received data:', JSON.stringify(data, null, 2));
+    console.log('🔍 UPDATE - Patient ID:', id);
+    
+    try {
+      // Convertir arrays a JSON strings - SOLO los que vienen en data
+      const processedData = { ...data };
+      
+      if ('allergies' in processedData && Array.isArray(processedData.allergies)) {
+        processedData.allergies = processedData.allergies.length > 0 
+          ? JSON.stringify(processedData.allergies) as any
+          : '[]' as any;
+        console.log('🔄 Converted allergies to:', processedData.allergies);
+      }
+      
+      if ('currentMedications' in processedData && Array.isArray(processedData.currentMedications)) {
+        processedData.currentMedications = processedData.currentMedications.length > 0
+          ? JSON.stringify(processedData.currentMedications) as any
+          : '[]' as any;
+        console.log('🔄 Converted currentMedications to:', processedData.currentMedications);
+      }
+      
+      // Construir UPDATE SQL manualmente
+      const fields = Object.keys(processedData).filter(key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam');
+      
+      if (fields.length > 0) {
+        const setClause = fields.map((field, idx) => `[${field}] = @${idx}`).join(', ');
+        const values = fields.map(field => processedData[field]);
+        
+        const sql = `UPDATE [patients] SET ${setClause} WHERE [id] = @${fields.length}`;
+        console.log('🔧 SQL:', sql);
+        console.log('🔧 Values:', values);
+        
+        await this.patientRepo.query(sql, [...values, id]);
+        console.log('✅ Raw SQL update successful');
+      }
+      
+      // Ahora cargar el paciente actualizado para retornarlo
+      const result = await this.findOne(id);
+      console.log('✅ Patient reloaded');
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error in update:', error);
+      throw error;
+    }
   }
 
   async remove(id: string) {
@@ -154,20 +204,32 @@ export class PatientsService {
   }
 
   async findPatientNotes(patientId: string) {
+    // Normalizar patientId a mayúsculas para búsqueda
+    const normalizedId = patientId.toUpperCase();
+    console.log('🔍 findPatientNotes - Buscando notas para patientId:', normalizedId);
+    
     // Buscar todas las notas del paciente ordenadas por fecha
     const notes = await this.notesRepo.find({
-      where: { patientId },
+      where: { patientId: normalizedId },
       order: { createdAt: 'DESC' },
     });
+    
+    console.log('✅ findPatientNotes - Notas encontradas:', notes.length);
     return notes;
   }
 
   async findPatientDocuments(patientId: string) {
+    // Normalizar patientId a mayúsculas para búsqueda
+    const normalizedId = patientId.toUpperCase();
+    console.log('🔍 findPatientDocuments - Buscando documentos para patientId:', normalizedId);
+    
     // Buscar todos los documentos del paciente ordenados por fecha
     const documents = await this.documentsRepo.find({
-      where: { patientId },
+      where: { patientId: normalizedId },
       order: { uploadDate: 'DESC' },
     });
+    
+    console.log('✅ findPatientDocuments - Documentos encontrados:', documents.length);
     return documents;
   }
 

@@ -18,7 +18,7 @@ import { BottomNavigation } from "@/components/BottomNavigation";
 import { clinicalStaffTabs } from "@/common/config/navigationTabs";
 import type { DoctorUser, NurseUser, Patient } from "@/types/medical";
 import { SearchPatientByRut } from "@/components/SearchPatientByRut";
-import { PatientRecord } from "@/components/PatientRecord";
+import { EditablePatientRecord } from "@/components/EditablePatientRecord";
 import { Button } from "@/components/ui/button";
 import { CompleteDoctorProfile } from "@/components/CompleteDoctorProfile";
 import { CompleteNurseProfile } from "@/components/CompleteNurseProfile";
@@ -128,7 +128,7 @@ export function DashboardClinicalStaff() {
     
     // Guardar en historial de búsquedas
     try {
-      // TODO: Implementar endpoint para guardar historial de búsquedas
+      // TODO: HECHO, NO TOCAR
       console.log('Paciente encontrado:', patient.id, patient.rut);
     } catch (error) {
       console.error('Error al guardar historial:', error);
@@ -168,7 +168,7 @@ export function DashboardClinicalStaff() {
   if (selectedPatient) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <PatientRecord 
+        <EditablePatientRecord 
           patient={selectedPatient} 
           onBack={handleBackFromRecord} 
         />

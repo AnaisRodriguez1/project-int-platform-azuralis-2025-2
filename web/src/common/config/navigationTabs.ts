@@ -1,4 +1,4 @@
-import { Home, StickyNote, FolderOpen, Settings, Users, Calendar, Search } from "lucide-react";
+import { Home, StickyNote, FolderOpen, Settings, Users, Calendar, Search, ClipboardList } from "lucide-react";
 import type { NavTab } from "@/components/BottomNavigation";
 
 // Tabs para Paciente
@@ -6,7 +6,7 @@ export const patientTabs: NavTab[] = [
   { id: 'home', icon: Home, label: 'Inicio' },
   { id: 'notes', icon: StickyNote, label: 'Notas' },
   { id: 'documents', icon: FolderOpen, label: 'Documentos' },
-  { id: 'profile', icon: Settings, label: 'Perfil' }
+  { id: 'profile', icon: ClipboardList, label: 'Ficha Médica' }
 ];
 
 // Tabs para Personal Clínico (Doctor y Enfermera/o)

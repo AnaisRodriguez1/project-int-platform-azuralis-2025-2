@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Share2, User, StickyNote, FolderOpen, Settings } from 'lucide-react';
+import { Share2, User, StickyNote, FolderOpen, ClipboardList } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { cancerColors } from '@/types/medical';
 import type { Patient } from '@/types/medical';
@@ -221,11 +221,11 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
                 className="w-12 h-12 rounded-full flex items-center justify-center mx-auto"
                 style={{ backgroundColor: `${cancerColor.color}20` }}
               >
-                <Settings className="w-6 h-6" style={{ color: cancerColor.color }} />
+                <ClipboardList className="w-6 h-6" style={{ color: cancerColor.color }} />
               </div>
               <div>
-                <h3 className="font-medium">Mi Perfil</h3>
-                <p className="text-sm text-gray-600">Configuración y personalización</p>
+                <h3 className="font-medium">Mi Ficha Médica</h3>
+                <p className="text-sm text-gray-600">Información y configuración</p>
               </div>
             </CardContent>
           </Card>
