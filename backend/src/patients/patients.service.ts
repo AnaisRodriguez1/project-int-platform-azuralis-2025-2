@@ -204,20 +204,32 @@ export class PatientsService {
   }
 
   async findPatientNotes(patientId: string) {
+    // Normalizar patientId a mayúsculas para búsqueda
+    const normalizedId = patientId.toUpperCase();
+    console.log('🔍 findPatientNotes - Buscando notas para patientId:', normalizedId);
+    
     // Buscar todas las notas del paciente ordenadas por fecha
     const notes = await this.notesRepo.find({
-      where: { patientId },
+      where: { patientId: normalizedId },
       order: { createdAt: 'DESC' },
     });
+    
+    console.log('✅ findPatientNotes - Notas encontradas:', notes.length);
     return notes;
   }
 
   async findPatientDocuments(patientId: string) {
+    // Normalizar patientId a mayúsculas para búsqueda
+    const normalizedId = patientId.toUpperCase();
+    console.log('🔍 findPatientDocuments - Buscando documentos para patientId:', normalizedId);
+    
     // Buscar todos los documentos del paciente ordenados por fecha
     const documents = await this.documentsRepo.find({
-      where: { patientId },
+      where: { patientId: normalizedId },
       order: { uploadDate: 'DESC' },
     });
+    
+    console.log('✅ findPatientDocuments - Documentos encontrados:', documents.length);
     return documents;
   }
 

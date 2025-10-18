@@ -7,10 +7,14 @@ export class PatientNote {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // TODO: Descomentar después de ejecutar update-patient-notes-table.sql
+  // @Column({ type: 'nvarchar', length: 255, nullable: true })
+  // title: string;
+
   @Column({ type: 'text' })
   content: string;
 
-  @CreateDateColumn()
+  @Column({ type: 'datetime2', default: () => 'GETDATE()' })
   createdAt: Date;
 
   @Column()
@@ -21,6 +25,10 @@ export class PatientNote {
 
   @Column()
   authorName: string;
+
+  // TODO: Descomentar después de ejecutar update-patient-notes-table.sql
+  // @Column({ nullable: true })
+  // authorRole: string; // Rol del autor (patient, doctor, nurse, guardian)
 
   // Relaciones (opcional, para TypeORM)
   @ManyToOne(() => Patient, (patient) => patient.notes, { onDelete: 'CASCADE' })

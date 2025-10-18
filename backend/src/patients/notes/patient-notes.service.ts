@@ -11,8 +11,23 @@ export class PatientNotesService {
   ) {}
 
   async create(noteData: Partial<PatientNote>) {
+    // Normalizar patientId a mayúsculas si existe
+    if (noteData.patientId) {
+      noteData.patientId = noteData.patientId.toUpperCase();
+    }
+    
+    // Asegurar que createdAt tenga un valor
+    if (!noteData.createdAt) {
+      noteData.createdAt = new Date();
+    }
+    
+    console.log('📝 Creating note with patientId:', noteData.patientId);
+    console.log('📝 Note data:', noteData);
+    
     const note = this.notesRepo.create(noteData);
-    return this.notesRepo.save(note);
+    const saved = await this.notesRepo.save(note);
+    console.log('✅ Note created:', saved.id);
+    return saved;
   }
 
   async findAll() {

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Plus, Calendar, Edit3, Trash2, StickyNote } from 'lucide-react';
 import { apiService } from '@/services/api';
-import type { PatientNote, PatientUser } from '@/types/medical';
+import type { PatientNote } from '@/types/medical';
 
 interface NotesPatientProps {
   hideHeader?: boolean; // Prop para ocultar el header cuando se usa en un wrapper
@@ -17,7 +17,7 @@ interface NotesPatientProps {
 
 export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
   const { user } = useAuth();
-  const { cancerColor } = usePatientData();
+  const { cancerColor, patientId } = usePatientData();
   const [notes, setNotes] = useState<PatientNote[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
@@ -25,34 +25,46 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
   const [editingNote, setEditingNote] = useState<PatientNote | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const patientUser = user as PatientUser;
-  const patientId = patientUser?.patientId;
-
   // Cargar notas al montar el componente
   useEffect(() => {
+    console.log('🔍 Notes - patientId:', patientId);
     if (patientId) {
       loadNotes();
     }
   }, [patientId]);
 
   const loadNotes = async () => {
-    if (patientId) {
-      try {
-        const allNotes = await apiService.notes.getAll();
-        const patientNotes = allNotes.filter(note => note.patientId === patientId);
-        setNotes(patientNotes);
-      } catch (error) {
-        console.error('Error loading notes:', error);
-      }
+    if (!patientId) {
+      console.warn('⚠️ Notes - No patientId disponible');
+      return;
+    }
+    
+    try {
+      console.log('📥 Notes - Cargando notas para patientId:', patientId);
+      const patientNotes = await apiService.patients.getNotes(patientId);
+      console.log('✅ Notes - Notas cargadas:', patientNotes);
+      setNotes(patientNotes);
+    } catch (error) {
+      console.error('❌ Notes - Error loading notes:', error);
+      setNotes([]);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-CL', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const formatDate = (dateString: string | Date | undefined) => {
+    if (!dateString) return 'Fecha no disponible';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Fecha inválida';
+      
+      return date.toLocaleDateString('es-CL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
   };
 
   const handleAddNote = async () => {
@@ -60,19 +72,24 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
 
     setIsLoading(true);
     try {
-      await apiService.notes.create({
-        title: newNoteTitle,
+      const noteData = {
+        // title: newNoteTitle, // TODO: Descomentar cuando ejecutes update-patient-notes-table.sql
         content: newNoteContent,
         patientId: patientId,
         authorId: user.id,
-        authorName: user.name
-      });
+        authorName: user.name,
+        // authorRole: user.role, // TODO: Descomentar cuando ejecutes update-patient-notes-table.sql
+        createdAt: new Date().toISOString() // Fecha actual
+      };
+      
+      console.log('📝 Creating note with data:', noteData);
+      await apiService.notes.create(noteData);
 
       loadNotes();
       resetForm();
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Error al crear nota:', error);
+      console.error('❌ Error al crear nota:', error);
       alert('Error al crear la nota');
     } finally {
       setIsLoading(false);
@@ -117,42 +134,43 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
 
   const startEditing = (note: PatientNote) => {
     setEditingNote(note);
-    setNewNoteTitle(note.title);
+    setNewNoteTitle(note.title || '');
     setNewNoteContent(note.content);
     setIsDialogOpen(true);
   };
 
   // Verificar si el usuario actual puede editar/eliminar una nota
-  const canEditNote = (note: PatientNote): boolean => {
+  const canEditNote = (note: any): boolean => {
     if (!user) return false;
     
-    // El autor siempre puede editar su propia nota
-    if (note.authorId === user.id) return true;
+    // TODO: Después de ejecutar update-patient-notes-table.sql, descomentar la lógica completa
+    // Por ahora, inferir el rol del autor basándose en el nombre
+    const nameLower = note.authorName?.toLowerCase() || '';
+    const isDoctorOrNurse = nameLower.includes('dr.') || nameLower.includes('doctor') || nameLower.includes('enferm');
     
-    // Doctores y enfermeras pueden editar cualquier nota
-    if (user.role === 'doctor' || user.role === 'nurse') return true;
-    
-    // Guardianes pueden editar todas las notas del paciente bajo su cuidado (excepto las de doctor/enfermera)
-    if (user.role === 'guardian') {
-      // Si la nota es del paciente bajo su cuidado, verificar que no sea de doctor/enfermera
-      if (note.patientId === patientId) {
-        // Guardianes pueden editar notas de pacientes y otros guardianes, pero NO de doctor/enfermera
-        const authorRole = note.authorName?.toLowerCase().includes('dr.') || 
-                          note.authorName?.toLowerCase().includes('doctor') ||
-                          note.authorName?.toLowerCase().includes('enferm');
-        return !authorRole;
+    // PACIENTES: Solo pueden editar sus propias notas, NUNCA las de doctores o enfermeras
+    if (user.role === 'patient') {
+      // NO puede editar notas de doctores o enfermeras (inferido del nombre)
+      if (isDoctorOrNurse) {
+        return false;
       }
+      // Solo puede editar sus propias notas
+      return note.authorId === user.id;
     }
     
-    // Pacientes pueden editar sus propias notas y las de su guardian, pero NO las de doctor/enfermera
-    if (user.role === 'patient') {
-      if (note.patientId === patientId) {
-        // Pacientes NO pueden editar notas de doctores o enfermeras
-        const authorRole = note.authorName?.toLowerCase().includes('dr.') || 
-                          note.authorName?.toLowerCase().includes('doctor') ||
-                          note.authorName?.toLowerCase().includes('enferm');
-        return !authorRole;
+    // GUARDIANES: Pueden editar notas del paciente, excepto las de doctores/enfermeras
+    if (user.role === 'guardian') {
+      // NO puede editar notas de doctores o enfermeras
+      if (isDoctorOrNurse) {
+        return false;
       }
+      // Puede editar notas del paciente bajo su cuidado
+      return note.patientId === patientId;
+    }
+    
+    // DOCTORES Y ENFERMERAS: Pueden editar cualquier nota
+    if (user.role === 'doctor' || user.role === 'nurse') {
+      return true;
     }
     
     return false;
@@ -263,7 +281,7 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps = {}) {
                     <CardTitle className="text-lg">{note.title}</CardTitle>
                     <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
                       <Calendar className="w-4 h-4" />
-                      <span>{formatDate(note.date)}</span>
+                      <span>{formatDate(note.createdAt || note.date)}</span>
                       <span className="text-gray-400">•</span>
                       <span>Por {note.authorName}</span>
                     </div>

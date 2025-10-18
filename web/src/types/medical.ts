@@ -65,12 +65,14 @@ export interface Patient {
 
 export interface PatientNote {
   id: string;
-  title: string;
+  title?: string;
   content: string;
-  date: string;
+  date?: string; // Retrocompatibilidad
+  createdAt?: string | Date; // Campo real de la BD
   patientId: string;
   authorId: string;
   authorName: string;
+  authorRole?: string; // Rol del autor para validación de permisos
 }
 
 export type DocumentType = 

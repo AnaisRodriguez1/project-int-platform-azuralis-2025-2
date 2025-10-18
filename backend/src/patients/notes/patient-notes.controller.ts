@@ -8,6 +8,8 @@ export class PatientNotesController {
 
   @Post()
   async create(@Body() noteData: Partial<PatientNote>) {
+    // El authorRole debería venir en el noteData desde el frontend
+    // Si no viene, se puede inferir o dejarlo null
     return this.notesService.create(noteData);
   }
 
