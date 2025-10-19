@@ -1,23 +1,21 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import type { UserRole } from "./types/medical";
-import { LoginScreen } from "./components/LoginScreen";
-import { DashboardDoctor } from "./components/DashboardDoctor";
-import { DashboardPatient } from "./components/DashboardPatient";
-import { DashboardGuardian } from "./components/DashboardGuardian";
-import { DashboardNurse } from "./components/DashboardNurse";
+import { LoginScreen } from "./pages/LoginScreen";
+import { DashboardClinicalStaff } from "./pages/ClinicalStaff/DashboardClinicalStaff";
+import { DashboardPatient } from "./pages/Patient/DashboardPatient";
+import { DashboardGuardian } from "./pages/Guardian/DashboardGuardian";
 
 // Helper function para obtener la ruta del dashboard según el role
 const getDashboardRoute = (role: UserRole): string => {
     switch (role) {
         case 'doctor':
-            return '/dashboard-doctor';
+        case 'nurse':
+            return '/dashboard-clinical';
         case 'patient':
             return '/dashboard-patient';
         case 'guardian':
             return '/dashboard-guardian';
-        case 'nurse':
-            return '/dashboard-nurse';
         default:
             return '/';
     }
@@ -71,10 +69,10 @@ export function AppRouter() {
 
                 {/* Rutas protegidas - Dashboards */}
                 <Route
-                    path="/dashboard-doctor"
+                    path="/dashboard-clinical"
                     element={
                         <ProtectedRoute>
-                            <DashboardDoctor />
+                            <DashboardClinicalStaff />
                         </ProtectedRoute>
                     }
                 />
@@ -91,14 +89,6 @@ export function AppRouter() {
                     element={
                         <ProtectedRoute>
                             <DashboardGuardian />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/dashboard-nurse"
-                    element={
-                        <ProtectedRoute>
-                            <DashboardNurse />
                         </ProtectedRoute>
                     }
                 />
