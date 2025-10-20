@@ -2,12 +2,12 @@ import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useAuth } from "../context/AuthContext";
-import { LoginScreen } from "../components/LoginScreen";
-import { DashboardClinicalStaff } from "../pages/ClinicalStaff/DashboardClinicalStaff";
-import { DashboardPatient } from "../pages/Patient/DashboardPatient";
-import { DashboardGuardian } from "../pages/Guardian/DashboardGuardian";
-import type { UserRole } from "../types/medical";
+import { useAuth } from "./context/AuthContext";
+import { LoginScreen } from "./pages/LoginScreen";
+import { DashboardClinicalStaff } from "./pages/ClinicalStaff/DashboardClinicalStaff";
+import { DashboardPatient } from "./pages/Patient/DashboardPatient";
+import { DashboardGuardian } from "./pages/Guardian/DashboardGuardian";
+import type { UserRole } from "./types/medical";
 
 // 🔹 Helper para definir la ruta inicial según el rol
 const getDashboardRoute = (role: UserRole): keyof RootStackParamList => {
