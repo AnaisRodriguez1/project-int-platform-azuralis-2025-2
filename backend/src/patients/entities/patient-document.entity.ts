@@ -20,9 +20,8 @@ export class PatientDocument {
   @Column()
   url: string;
 
-  // TODO: Descomentar después de ejecutar update-patient-documents-table.sql
-  // @Column({ type: 'text', nullable: true })
-  // description: string;
+  @Column({ type: 'text', nullable: true })
+  description: string;
 
   @Column({ type: 'datetime2', default: () => 'GETDATE()' })
   uploadDate: string;

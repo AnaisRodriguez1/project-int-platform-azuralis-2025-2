@@ -8,8 +8,8 @@ export class PatientNote {
   id: string;
 
   // TODO: Descomentar después de ejecutar update-patient-notes-table.sql
-  // @Column({ type: 'nvarchar', length: 255, nullable: true })
-  // title: string;
+  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  title: string;
 
   @Column({ type: 'text' })
   content: string;
@@ -27,8 +27,8 @@ export class PatientNote {
   authorName: string;
 
   // TODO: Descomentar después de ejecutar update-patient-notes-table.sql
-  // @Column({ nullable: true })
-  // authorRole: string; // Rol del autor (patient, doctor, nurse, guardian)
+  @Column({ nullable: true })
+  authorRole: string; // Rol del autor (patient, doctor, nurse, guardian)
 
   // Relaciones (opcional, para TypeORM)
   @ManyToOne(() => Patient, (patient) => patient.notes, { onDelete: 'CASCADE' })
