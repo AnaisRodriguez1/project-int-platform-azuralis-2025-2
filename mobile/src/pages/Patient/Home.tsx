@@ -133,7 +133,7 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
             source={
               patient.photo
                 ? { uri: patient.photo }
-                : require("@/assets/avatar-default.png")
+                : require("../../assets/avatar-default.png")
             }
             style={styles.avatar}
           />

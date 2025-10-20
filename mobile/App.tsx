@@ -1,7 +1,7 @@
 import React from 'react';
-import { AuthProvider } from './context/AuthContext';
-import { AppRouter } from './context/AppRouter';
-import { PatientProvider } from './context/PatientContext';
+import { AuthProvider } from './src/context/AuthContext';
+import { AppRouter } from './src/context/AppRouter';
+import { PatientProvider } from './src/context/PatientContext';
 
 export default function App() {
   return (

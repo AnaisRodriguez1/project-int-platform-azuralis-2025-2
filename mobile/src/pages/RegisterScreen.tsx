@@ -14,7 +14,7 @@ import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { CancerRibbon } from "../components/CancerRibbon";
-import LogoUCN from "@/assets/icons/logo_ucn.svg";
+import LogoUCN from "../assets/icons/logo_ucn.svg";
 import {
   validateRegistrationForm,
   formatRUT,

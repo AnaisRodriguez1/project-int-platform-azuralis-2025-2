@@ -14,7 +14,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { CancerRibbon } from "../components/CancerRibbon"; // asegúrate de tener versión RN o svg válido
-import LogoUCN from "@/assets/icons/logo_ucn.svg"; // si usas metro + svgr
+//import LogoUCN from "../assets/icons/logo_ucn.svg";     
+// <LogoUCN width={32} height={32} /> // si usas metro + svgr
+import { Image } from "react-native";
 
 export function LoginScreen() {
   const navigation = useNavigation();
@@ -82,7 +84,10 @@ export function LoginScreen() {
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <CancerRibbon size="lg" color="#ff6299" />
-            <LogoUCN width={32} height={32} />
+            <Image
+              source={require("../assets/icons/logo_ucn.png")} // usa PNG o JPG
+              style={{ width: 32, height: 32 }}
+            />
           </View>
           <Text style={styles.title}>Ficha Médica Portátil</Text>
           <Text style={styles.subtitle}>Universidad Católica del Norte</Text>
