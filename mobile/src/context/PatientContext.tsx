@@ -1,23 +1,26 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import type { CancerType } from '../types/medical';
+import React, { createContext, useContext, useState } from "react";
+import type { ReactNode } from "react";
+import type { CancerType } from "../types/medical";
 
 interface PatientContextData {
   patientId: string;
   cancerType: CancerType;
   name: string;
+  // Agrega más campos si los usas en el dashboard móvil (ej: stage, diagnosis, etc.)
 }
 
 interface PatientContextType {
   currentPatient: PatientContextData | null;
-  setCurrentPatient: (patient: PatientContextData | null) => void;
+  setCurrentPatient: React.Dispatch<React.SetStateAction<PatientContextData | null>>;
   isLoading: boolean;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
 
 export function PatientProvider({ children }: { children: ReactNode }) {
   const [currentPatient, setCurrentPatient] = useState<PatientContextData | null>(null);
-  const [isLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <PatientContext.Provider
@@ -25,6 +28,7 @@ export function PatientProvider({ children }: { children: ReactNode }) {
         currentPatient,
         setCurrentPatient,
         isLoading,
+        setIsLoading,
       }}
     >
       {children}
@@ -35,7 +39,7 @@ export function PatientProvider({ children }: { children: ReactNode }) {
 export function usePatientContext() {
   const context = useContext(PatientContext);
   if (!context) {
-    throw new Error('usePatientContext debe usarse dentro de un PatientProvider');
+    throw new Error("usePatientContext debe ser usado dentro de un PatientProvider");
   }
   return context;
 }

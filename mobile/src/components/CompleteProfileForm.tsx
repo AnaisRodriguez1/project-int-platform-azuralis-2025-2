@@ -1,61 +1,60 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuth } from '../context/AuthContext';
-import { cancerColors } from '../types/medical';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView,} from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { useAuth } from "../context/AuthContext";
+import { apiService } from "../services/api";
+import { cancerColors, type CancerType } from "../types/medical";
+import { User, AlertCircle, FileText, Phone } from "lucide-react-native";
 
-// SE AGREGO ESTAS LINEAS 10-12 VER SI AL MOMENTO DE CONECTAR CON EL BACK NO INTERFIEREN 
-interface CompleteProfileFormMobileProps {
-  onComplete?: () => void;
+interface CompleteProfileFormProps {
+  onComplete: () => void;
 }
 
-/*
-al CompleteProfilefomr(){ -> asi era antes se le agrego lo que se ve en la linea 18 estar pendiente para que al momento de 
-conectar con el back no nos tire error
- */
-export default function CompleteProfileForm ({ onComplete }: CompleteProfileFormMobileProps) {
+export function CompleteProfileForm({ onComplete }: CompleteProfileFormProps) {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [step, setStep] = useState(1);
 
   const [formData, setFormData] = useState({
-    age: '',
-    diagnosis: '',
-    stage: '',
-    cancerType: '',
-    allergies: '',
-    currentMedications: '',
-    treatmentSummary: '',
-    emergencyContactName: '',
-    emergencyContactRelationship: '',
-    emergencyContactPhone: '',
+    age: "",
+    diagnosis: "",
+    stage: "",
+    cancerType: "" as CancerType,
+    allergies: "",
+    currentMedications: "",
+    treatmentSummary: "",
+    emergencyContactName: "",
+    emergencyContactRelationship: "",
+    emergencyContactPhone: "",
   });
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveProfile = async () => {
-    if (!formData.age || !formData.diagnosis || !formData.stage || !formData.cancerType) {
-      Alert.alert('Error', 'Por favor completa los campos obligatorios del paso 1.');
-      return;
-    }
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
 
     try {
-      setLoading(true);
+      const allergiesArray = formData.allergies
+        ? formData.allergies.split(",").map((a) => a.trim()).filter((a) => a)
+        : [];
 
-      const patientProfile = {
-        name: user?.name || '',
-        rut: (user as any)?.rut || '',
+      const medicationsArray = formData.currentMedications
+        ? formData.currentMedications.split(",").map((m) => m.trim()).filter((m) => m)
+        : [];
+
+      const patientData = {
+        name: user?.name || "",
+        rut: user?.rut || "",
         age: parseInt(formData.age) || 0,
         diagnosis: formData.diagnosis,
         stage: formData.stage,
         cancerType: formData.cancerType,
-        allergies: formData.allergies.split(',').map(a => a.trim()).filter(a => a),
-        currentMedications: formData.currentMedications.split(',').map(m => m.trim()).filter(m => m),
+        allergies: allergiesArray,
+        currentMedications: medicationsArray,
         treatmentSummary: formData.treatmentSummary,
         emergencyContact: {
           name: formData.emergencyContactName,
@@ -64,149 +63,170 @@ export default function CompleteProfileForm ({ onComplete }: CompleteProfileForm
         },
       };
 
-      // 🧠 Guardar localmente (más adelante se mandará al backend)
-      await AsyncStorage.setItem(`patientProfile_${user?.id}`, JSON.stringify(patientProfile));
-      
-      if (onComplete) onComplete(); // LINEA AGREGADA TAMBIEN ANTES NO ESTABA, VER QUE NO MOLESTA AL MOMENTO DE HACER CONEXION CON BACKEND
-
-      Alert.alert('Perfil guardado', 'Tu información médica fue registrada correctamente.');
-
-      navigation.navigate('DashboardPatient');
+      await apiService.patients.create(patientData);
+      onComplete();
     } catch (err: any) {
-      Alert.alert('Error', 'No se pudo guardar el perfil. Intenta nuevamente.');
-      console.error(err);
+      console.error("Error al crear perfil:", err);
+      setError(
+        err.response?.data?.message ||
+          "Error al guardar los datos. Por favor intenta nuevamente."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------- RENDER DE PASOS ----------
-  const renderStep1 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Paso 1: Información Básica</Text>
-
+  // ---------- PANTALLAS ----------
+  const Step1 = () => (
+    <View>
+      <Text style={styles.label}>Edad *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Edad"
         keyboardType="numeric"
         value={formData.age}
-        onChangeText={v => handleChange('age', v)}
+        onChangeText={(v) => handleChange("age", v)}
+        placeholder="Ej: 45"
       />
 
+      <Text style={styles.label}>Diagnóstico *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Diagnóstico (Ej: Cáncer de Mama)"
         value={formData.diagnosis}
-        onChangeText={v => handleChange('diagnosis', v)}
+        onChangeText={(v) => handleChange("diagnosis", v)}
+        placeholder="Ej: Cáncer de mama"
       />
 
+      <Text style={styles.label}>Etapa / Estadio *</Text>
       <TextInput
         style={styles.input}
-        placeholder="Etapa/Estadio (Ej: Etapa II)"
         value={formData.stage}
-        onChangeText={v => handleChange('stage', v)}
+        onChangeText={(v) => handleChange("stage", v)}
+        placeholder="Ej: Etapa II"
       />
 
-      <Text style={styles.label}>Tipo de Cáncer</Text>
+      <Text style={styles.label}>Tipo de cáncer *</Text>
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={formData.cancerType}
-          onValueChange={v => handleChange('cancerType', v)}
+          onValueChange={(v) => handleChange("cancerType", v)}
         >
-          <Picker.Item label="Selecciona tipo de cáncer" value="" />
-          {Object.entries(cancerColors).map(([type, config]) => (
-            <Picker.Item
-              key={type}
-              label={config.name}
-              value={type}
-              color={config.color}
-            />
+          <Picker.Item label="Selecciona el tipo de cáncer" value="" />
+          {Object.entries(cancerColors).map(([key, config]) => (
+            <Picker.Item key={key} label={config.name} value={key} />
           ))}
         </Picker>
       </View>
 
-      <TouchableOpacity style={styles.nextButton} onPress={() => setStep(2)}>
-        <Text style={styles.buttonText}>Siguiente</Text>
+      <TouchableOpacity
+        style={[
+          styles.nextButton,
+          {
+            backgroundColor:
+              !formData.age || !formData.diagnosis || !formData.stage || !formData.cancerType
+                ? "#93C5FD"
+                : "#7C3AED",
+          },
+        ]}
+        disabled={
+          !formData.age || !formData.diagnosis || !formData.stage || !formData.cancerType
+        }
+        onPress={() => setStep(2)}
+      >
+        <Text style={styles.nextButtonText}>Siguiente</Text>
       </TouchableOpacity>
     </View>
   );
 
-  const renderStep2 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Paso 2: Tratamiento y Medicación</Text>
-
+  const Step2 = () => (
+    <View>
+      <Text style={styles.label}>Alergias</Text>
       <TextInput
         style={styles.input}
-        placeholder="Alergias (separa por comas)"
         value={formData.allergies}
-        onChangeText={v => handleChange('allergies', v)}
+        onChangeText={(v) => handleChange("allergies", v)}
+        placeholder="Ej: Penicilina, Ibuprofeno"
       />
+      <Text style={styles.helper}>Separa múltiples alergias con comas</Text>
 
+      <Text style={styles.label}>Medicamentos actuales</Text>
       <TextInput
-        style={[styles.input, { height: 80 }]}
-        placeholder="Medicamentos actuales (separa por comas)"
+        style={[styles.input, { height: 80, textAlignVertical: "top" }]}
+        multiline
         value={formData.currentMedications}
-        onChangeText={v => handleChange('currentMedications', v)}
-        multiline
+        onChangeText={(v) => handleChange("currentMedications", v)}
+        placeholder="Ej: Tamoxifeno 20mg - cada 12h"
       />
 
+      <Text style={styles.label}>Resumen de tratamiento</Text>
       <TextInput
-        style={[styles.input, { height: 100 }]}
-        placeholder="Resumen del tratamiento actual..."
-        value={formData.treatmentSummary}
-        onChangeText={v => handleChange('treatmentSummary', v)}
+        style={[styles.input, { height: 100, textAlignVertical: "top" }]}
         multiline
+        value={formData.treatmentSummary}
+        onChangeText={(v) => handleChange("treatmentSummary", v)}
+        placeholder="Describe brevemente tu tratamiento..."
       />
 
-      <View style={styles.navButtons}>
+      <View style={styles.stepButtons}>
         <TouchableOpacity style={styles.backButton} onPress={() => setStep(1)}>
-          <Text style={styles.buttonText}>Atrás</Text>
+          <Text style={styles.backButtonText}>Atrás</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.nextButton} onPress={() => setStep(3)}>
-          <Text style={styles.buttonText}>Siguiente</Text>
+          <Text style={styles.nextButtonText}>Siguiente</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Paso 3: Contacto de Emergencia</Text>
+  const Step3 = () => (
+    <View>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoBoxText}>
+          <Text style={{ fontWeight: "bold" }}>Contacto de emergencia</Text> — Opcional pero
+          recomendado
+        </Text>
+      </View>
 
+      <Text style={styles.label}>Nombre del contacto</Text>
       <TextInput
         style={styles.input}
-        placeholder="Nombre del contacto"
         value={formData.emergencyContactName}
-        onChangeText={v => handleChange('emergencyContactName', v)}
+        onChangeText={(v) => handleChange("emergencyContactName", v)}
+        placeholder="Ej: María García"
       />
 
+      <Text style={styles.label}>Relación</Text>
       <TextInput
         style={styles.input}
-        placeholder="Relación (Ej: Hermana, Esposo/a)"
         value={formData.emergencyContactRelationship}
-        onChangeText={v => handleChange('emergencyContactRelationship', v)}
+        onChangeText={(v) => handleChange("emergencyContactRelationship", v)}
+        placeholder="Ej: Hermana, Esposo/a"
       />
 
+      <Text style={styles.label}>Teléfono</Text>
       <TextInput
         style={styles.input}
-        placeholder="Teléfono (+56 9 xxxx xxxx)"
         keyboardType="phone-pad"
         value={formData.emergencyContactPhone}
-        onChangeText={v => handleChange('emergencyContactPhone', v)}
+        onChangeText={(v) => handleChange("emergencyContactPhone", v)}
+        placeholder="Ej: +56 9 1234 5678"
       />
 
-      <View style={styles.navButtons}>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      <View style={styles.stepButtons}>
         <TouchableOpacity style={styles.backButton} onPress={() => setStep(2)}>
-          <Text style={styles.buttonText}>Atrás</Text>
+          <Text style={styles.backButtonText}>Atrás</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSaveProfile}
+          style={styles.submitButton}
+          onPress={handleSubmit}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>
-            {loading ? 'Guardando...' : 'Completar Perfil'}
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.nextButtonText}>Completar Perfil</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -214,77 +234,231 @@ export default function CompleteProfileForm ({ onComplete }: CompleteProfileForm
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
+      {/* Header */}
+      <View style={styles.headerCard}>
+        <View style={styles.headerTitleRow}>
+          <User color="#7C3AED" size={24} />
+          <Text style={styles.headerTitle}>Completa tu Perfil Médico</Text>
+        </View>
+        <Text style={styles.headerSubtitle}>
+          Para poder usar todas las funcionalidades de la aplicación, necesitamos algunos
+          datos sobre tu condición médica.
+        </Text>
+      </View>
+
+      {/* Indicador de pasos */}
+      <View style={styles.stepIndicator}>
+        {[1, 2, 3].map((num) => (
+          <View key={num} style={styles.stepItem}>
+            <View
+              style={[
+                styles.stepCircle,
+                step === num
+                  ? styles.stepActive
+                  : step > num
+                  ? styles.stepDone
+                  : styles.stepPending,
+              ]}
+            >
+              <Text style={styles.stepText}>
+                {step > num ? "✓" : num.toString()}
+              </Text>
+            </View>
+            {num < 3 && (
+              <View
+                style={[
+                  styles.stepLine,
+                  step > num ? styles.stepLineActive : styles.stepLinePending,
+                ]}
+              />
+            )}
+          </View>
+        ))}
+      </View>
+
+      {/* Contenido dinámico */}
+      <View style={styles.formCard}>
+        {step === 1 && <Step1 />}
+        {step === 2 && <Step2 />}
+        {step === 3 && <Step3 />}
+      </View>
+
+      {/* Info boxes */}
+      <View style={styles.infoCards}>
+        <View style={[styles.infoCard, { backgroundColor: "#EFF6FF" }]}>
+          <AlertCircle color="#2563EB" size={28} />
+          <Text style={styles.infoCardText}>
+            Tus datos están protegidos y solo los verá tu equipo médico
+          </Text>
+        </View>
+
+        <View style={[styles.infoCard, { backgroundColor: "#DCFCE7" }]}>
+          <FileText color="#16A34A" size={28} />
+          <Text style={styles.infoCardText}>
+            Podrás editar esta información desde tu perfil
+          </Text>
+        </View>
+
+        <View style={[styles.infoCard, { backgroundColor: "#F3E8FF" }]}>
+          <Phone color="#7C3AED" size={28} />
+          <Text style={styles.infoCardText}>
+            Se generará tu código QR único para emergencias
+          </Text>
+        </View>
+      </View>
     </ScrollView>
   );
 }
 
+// ---------- ESTILOS ----------
 const styles = StyleSheet.create({
   container: {
+    padding: 16,
+    backgroundColor: "#F9FAFB",
     flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#f8faff',
-    justifyContent: 'center',
   },
-  stepContainer: {
-    backgroundColor: '#fff',
+  headerCard: {
+    backgroundColor: "white",
     borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    padding: 16,
+    marginBottom: 16,
+    elevation: 2,
   },
-  stepTitle: {
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    fontWeight: "600",
+    color: "#111827",
   },
-  label: { fontWeight: '600', marginBottom: 4 },
+  headerSubtitle: {
+    fontSize: 13,
+    color: "#4B5563",
+    marginTop: 6,
+  },
+  formCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111827",
+    marginBottom: 4,
+    marginTop: 12,
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#D1D5DB",
     borderRadius: 8,
     padding: 10,
-    marginBottom: 15,
+    fontSize: 14,
+    backgroundColor: "#F9FAFB",
+    color: "#111827",
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#D1D5DB",
     borderRadius: 8,
-    marginBottom: 15,
+    backgroundColor: "#F9FAFB",
+    marginBottom: 10,
   },
-  navButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  helper: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  stepButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
   },
   nextButton: {
-    backgroundColor: '#fa8fb5',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
     flex: 1,
+    backgroundColor: "#7C3AED",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
   },
   backButton: {
-    backgroundColor: '#ccc',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
     flex: 1,
-    marginRight: 10,
-  },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-    padding: 12,
+    backgroundColor: "#E5E7EB",
+    paddingVertical: 12,
     borderRadius: 8,
-    alignItems: 'center',
-    flex: 1,
+    alignItems: "center",
+    marginRight: 8,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  submitButton: {
+    flex: 1,
+    backgroundColor: "#7C3AED",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  nextButtonText: {
+    color: "white",
+    fontWeight: "600",
+  },
+  backButtonText: {
+    color: "#374151",
+    fontWeight: "600",
+  },
+  errorText: {
+    color: "#B91C1C",
+    marginTop: 8,
+  },
+  infoBox: {
+    backgroundColor: "#DBEAFE",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  infoBoxText: {
+    fontSize: 13,
+    color: "#1E3A8A",
+  },
+  stepIndicator: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  stepItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepActive: { backgroundColor: "#7C3AED" },
+  stepDone: { backgroundColor: "#16A34A" },
+  stepPending: { backgroundColor: "#E5E7EB" },
+  stepText: { color: "white", fontWeight: "600" },
+  stepLine: { width: 32, height: 3, marginHorizontal: 4 },
+  stepLineActive: { backgroundColor: "#16A34A" },
+  stepLinePending: { backgroundColor: "#E5E7EB" },
+  infoCards: {
+    marginTop: 24,
+    gap: 12,
+  },
+  infoCard: {
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+  },
+  infoCardText: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#374151",
+    marginTop: 6,
   },
 });

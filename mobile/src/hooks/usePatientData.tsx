@@ -1,55 +1,69 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { usePatientContext } from '../context/PatientContext';
-import { cancerColorsExtended as cancerColors } from '../types/medical';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { usePatientContext } from "../context/PatientContext";
+import { apiService } from "../services/api";
+import { cancerColors } from "../types/medical";
+import type { CancerType, PatientUser } from "../types/medical";
 
 interface PatientData {
-  cancerType: keyof typeof cancerColors;
+  cancerType: CancerType;
   cancerColor: { color: string; name: string };
   patientId: string;
   patientName: string;
 }
 
+/**
+ * Hook para obtener los datos del paciente actual en la app móvil.
+ * 
+ * Funciona según el rol:
+ * - PACIENTE → obtiene sus propios datos desde la API.
+ * - GUARDIAN / DOCTOR / NURSE → usa el paciente actual del contexto.
+ */
 export function usePatientData(): PatientData {
   const { user } = useAuth();
   const { currentPatient } = usePatientContext();
 
   const [patientData, setPatientData] = useState<PatientData>({
-    cancerType: 'other',
+    cancerType: "other",
     cancerColor: cancerColors.other,
-    patientId: '',
-    patientName: 'Cargando...',
+    patientId: "",
+    patientName: "Cargando...",
   });
 
   useEffect(() => {
-    const loadPatientData = async () => {
-      try {
-        if (user?.role === 'patient') {
-          const storedProfile = await AsyncStorage.getItem(`patientProfile_${user.id}`);
-          if (storedProfile) {
-            const profile = JSON.parse(storedProfile);
-            setPatientData({
-              patientId: profile.id || user.id,
-              patientName: profile.name || user.name,
-              cancerType: profile.cancerType || 'other',
-              cancerColor: cancerColors[profile.cancerType as keyof typeof cancerColors] || cancerColors.other,
+    let isMounted = true; // previene actualizaciones de estado después del desmontaje
 
-            });
-          } else {
+    const loadPatientData = async () => {
+      if (!user) return;
+
+      try {
+        if (user.role === "patient") {
+          const patientUser = user as PatientUser;
+
+          // ✅ más eficiente: buscar paciente directamente por ID
+          const patient = await apiService.patients.getOne(patientUser.patientId);
+
+          if (isMounted && patient) {
             setPatientData({
-              patientId: user.id,
-              patientName: user.name,
-              cancerType: 'other',
-              cancerColor: cancerColors.other,
+              patientId: patient.id,
+              patientName: patient.name,
+              cancerType: patient.cancerType,
+              cancerColor: cancerColors[patient.cancerType] || cancerColors.other,
             });
           }
         } else if (
-          user?.role === 'guardian' ||
-          user?.role === 'doctor' ||
-          user?.role === 'nurse'
+          user.role === "guardian" ||
+          user.role === "doctor" ||
+          user.role === "nurse"
         ) {
-          if (currentPatient) {
+          if (!currentPatient) {
+            setPatientData({
+              patientId: "",
+              patientName: "No seleccionado",
+              cancerType: "other",
+              cancerColor: cancerColors.other,
+            });
+          } else {
             setPatientData({
               patientId: currentPatient.patientId,
               patientName: currentPatient.name,
@@ -57,27 +71,26 @@ export function usePatientData(): PatientData {
               cancerColor:
                 cancerColors[currentPatient.cancerType] || cancerColors.other,
             });
-          } else {
-            setPatientData({
-              patientId: '',
-              patientName: 'No seleccionado',
-              cancerType: 'other',
-              cancerColor: cancerColors.other,
-            });
           }
         }
       } catch (error) {
-        console.error('Error al cargar datos del paciente:', error);
-        setPatientData({
-          patientId: '',
-          patientName: user?.name || '',
-          cancerType: 'other',
-          cancerColor: cancerColors.other,
-        });
+        console.error("Error al cargar datos del paciente:", error);
+        if (isMounted) {
+          setPatientData({
+            patientId: "",
+            patientName: user.name,
+            cancerType: "other",
+            cancerColor: cancerColors.other,
+          });
+        }
       }
     };
 
     loadPatientData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, currentPatient]);
 
   return patientData;

@@ -1,94 +1,112 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiService } from '../services/api';
-import { mockApiService } from '../services/mockApi';
-import type { User } from '../types/medical';
-
-
-// Cambia este flag cuando el backend esté listo
-const USE_MOCK_API = true;
-const authApi = USE_MOCK_API ? mockApiService : apiService;
+import React, { createContext, useContext, useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiService } from "../services/api";
+import type { User, UserRole } from "../types/medical";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
-  register: (userData: any) => Promise<any>;
+  logout: () => Promise<void>;
+  register: (userData: RegisterFormData) => Promise<any>;
+}
+
+interface RegisterFormData {
+  name: string;
+  email: string;
+  password: string;
+  rut: string;
+  role: UserRole;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // =====================================================
+  // 🧩 Verificar autenticación al iniciar la app
+  // =====================================================
   useEffect(() => {
     checkAuthStatus();
   }, []);
 
-  // Verifica si hay un usuario logueado al abrir la app
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = async (): Promise<void> => {
+    setIsLoading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        const userData : any = await authApi.checkAuthStatus(token); // AGREGUE EL ANY AQUI
-        setUser(userData);
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
+
+      const userData: User = await apiService.checkAuthStatus(token);
+      setUser(userData);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
     } catch (error) {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+      console.error("Error verificando autenticación:", error);
+      setUser(null);
+      await AsyncStorage.multiRemove(["token", "user"]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // LOGIN
-  const login  = async (email: string, password: string) => {
+  // =====================================================
+  // 🧩 Login
+  // =====================================================
+  const login = async (email: string, password: string): Promise<User> => {
+    setIsLoading(true);
     try {
-      const data : any = await authApi.login(email, password); // AQUI TAMBIEN AGREGUE EL ANY
+      const data = await apiService.login(email, password);
+      const token = data.access_token;
 
-      // Guardar token y usuario en AsyncStorage
-      if (data.token) {
-        await AsyncStorage.setItem('token', data.token);
-      }
-      const userData : any = data.user || (await authApi.checkAuthStatus(data.token));  // AGREGUE EL ANY AQUÍ
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      // Guardar token
+      await AsyncStorage.setItem("token", token);
+
+      // Obtener datos del usuario autenticado
+      const userData: User = await apiService.checkAuthStatus(token);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+
       setUser(userData);
-
       return userData;
     } catch (error) {
+      console.error("Error en login:", error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  //  REGISTER
-  const register = async (userData: any) => {
+  // =====================================================
+  // 🧩 Registro
+  // =====================================================
+  const register = async (userData: RegisterFormData): Promise<any> => {
+    setIsLoading(true);
     try {
-      const registrationData = {
-        email: userData.email,
-        password: userData.password,
-        name: userData.name,
-        role: userData.role,
-      };
+      const registrationResponse = await apiService.register(userData);
 
-      const response = await authApi.register(registrationData);
-
-      // Login automático post-registro
+      // Iniciar sesión automáticamente tras el registro
       await login(userData.email, userData.password);
 
-      return response;
+      return registrationResponse;
     } catch (error) {
+      console.error("Error en registro:", error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // LOGOUT
-  const logout = async () => {
+  // =====================================================
+  // 🧩 Logout
+  // =====================================================
+  const logout = async (): Promise<void> => {
     setUser(null);
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    await AsyncStorage.multiRemove(["token", "user"]);
   };
 
   return (
@@ -107,11 +125,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Hook para acceder al contexto
-export const useAuth = () => {
+// =====================================================
+// 🧩 Custom Hook
+// =====================================================
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+    throw new Error(
+      "useAuth debe ser usado dentro de un AuthProvider (src/context/AuthContext)"
+    );
   }
   return context;
 };

@@ -1,252 +1,314 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Modal, TextInput, Alert, StyleSheet, ActivityIndicator,} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from '../../context/AuthContext';
-import { usePatientData } from '../../hooks/usePatientData';
-import type { PatientDocument } from '../../types/medical';
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Modal, TextInput, StyleSheet,} from "react-native";
+import { useAuth } from "../../context/AuthContext";
+import { usePatientData } from "../../hooks/usePatientData";
+import { apiService } from "../../services/api";
+import {
+  type PatientDocument,
+  type DocumentType,
+  getDocumentTypeColor,
+  getDocumentTypeLabel,
+} from "../../types/medical";
+import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function DocumentsPatient() {
+
+interface DocumentsPatientProps {
+  hideHeader?: boolean;
+}
+
+export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps = {}) {
   const { user } = useAuth();
   const { patientId, cancerColor } = usePatientData();
 
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
-  const [filteredDocs, setFilteredDocs] = useState<PatientDocument[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<'todos' | 'prescription' | 'test_result' | 'image' | 'other'>('todos');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<PatientDocument | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<DocumentType | "todos">("todos");
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newDocTitle, setNewDocTitle] = useState("");
+  const [newDocType, setNewDocType] = useState<DocumentType>("examen");
+  const [selectedFile, setSelectedFile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<PatientDocument | null>(null);
 
-  // Campos del nuevo documento
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<'prescription' | 'test_result' | 'image' | 'other'>('prescription');
-  const [description, setDescription] = useState('');
-  const [imageUri, setImageUri] = useState<string | null>(null);
-
-  // --- Cargar documentos almacenados
   useEffect(() => {
-    const loadDocs = async () => {
-      try {
-        const stored = await AsyncStorage.getItem(`documents_${patientId}`);
-        const parsed = stored ? JSON.parse(stored) : [];
-        setDocuments(parsed);
-        setFilteredDocs(parsed);
-      } catch (err) {
-        console.error('Error al cargar documentos:', err);
-      }
-    };
-    loadDocs();
+    if (patientId) loadDocuments();
   }, [patientId]);
 
-  // --- Filtrar
-  useEffect(() => {
-    if (selectedFilter === 'todos') {
-      setFilteredDocs(documents);
-    } else {
-      setFilteredDocs(documents.filter((doc) => doc.type === selectedFilter));
+  const loadDocuments = async () => {
+    try {
+      const docs = await apiService.patients.getDocuments(patientId);
+      setDocuments(docs);
+    } catch (err) {
+      console.error("Error cargando documentos:", err);
+      setDocuments([]);
     }
-  }, [selectedFilter, documents]);
-
-  // --- Guardar documentos localmente
-  const saveDocuments = async (newDocs: PatientDocument[]) => {
-    await AsyncStorage.setItem(`documents_${patientId}`, JSON.stringify(newDocs));
   };
 
-  // --- Añadir documento
   const handleAddDocument = async () => {
-    if (!title.trim()) {
-      Alert.alert('Error', 'Debes ingresar un título.');
+    if (!newDocTitle.trim() || !selectedFile) {
+      Alert.alert("Campos incompletos", "Por favor ingresa un título y selecciona un archivo.");
       return;
     }
     setIsLoading(true);
-
-    const newDoc: PatientDocument = {
-      id: Date.now().toString(),
-      title,
-      type,
-      description,
-      url: imageUri || 'https://via.placeholder.com/150',
-      uploadDate: new Date().toISOString(),
-      patientId,
-      uploaderId: user?.id || 'local',
-    };
-
-    const updated = [newDoc, ...documents];
-    setDocuments(updated);
-    saveDocuments(updated);
-    resetForm();
-    setModalVisible(false);
-    setIsLoading(false);
+    try {
+      await apiService.documents.create(
+        {
+          title: newDocTitle,
+          type: newDocType,
+          patientId,
+          uploaderId: user?.id,
+          uploadDate: new Date().toISOString(),
+        },
+        selectedFile
+      );
+      await loadDocuments();
+      resetForm();
+      setIsModalVisible(false);
+    } catch (error) {
+      Alert.alert("Error", "No se pudo subir el documento. Intenta nuevamente.");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setImageUri(null);
-    setType('prescription');
+    setNewDocTitle("");
+    setNewDocType("examen");
+    setSelectedFile(null);
   };
 
-  // --- Eliminar
-  const handleDelete = (id: string) => {
-    Alert.alert('Eliminar documento', '¿Seguro que deseas eliminarlo?', [
-      { text: 'Cancelar', style: 'cancel' },
+  const handleDeleteDocument = async (docId: string) => {
+    Alert.alert("Eliminar documento", "¿Estás seguro de eliminar este documento?", [
+      { text: "Cancelar", style: "cancel" },
       {
-        text: 'Eliminar',
-        style: 'destructive',
+        text: "Eliminar",
+        style: "destructive",
         onPress: async () => {
-          const updated = documents.filter((d) => d.id !== id);
-          setDocuments(updated);
-          saveDocuments(updated);
+          try {
+            await apiService.documents.delete(docId);
+            loadDocuments();
+          } catch (err) {
+            Alert.alert("Error", "No se pudo eliminar el documento.");
+            console.error(err);
+          }
         },
       },
     ]);
   };
 
-  // --- Subir imagen (galería o cámara)
-  const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a tus imágenes.');
-      return;
-    }
+  const handleSelectFile = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
-      quality: 0.7,
+      quality: 0.8,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      setSelectedFile({
+        uri: asset.uri,
+        name: asset.fileName || "document.jpg",
+        type: asset.type || "image/jpeg",
+      });
+      if (!newDocTitle.trim()) setNewDocTitle(asset.fileName || "Nuevo Documento");
+    }
   };
 
-  const takePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a la cámara.');
-      return;
-    }
+  const handleTakePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
-      quality: 0.7,
+      quality: 0.8,
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      setSelectedFile({
+        uri: asset.uri,
+        name: asset.fileName || "foto.jpg",
+        type: "image/jpeg",
+      });
+      if (!newDocTitle.trim()) setNewDocTitle("Foto " + new Date().toLocaleTimeString());
+    }
   };
 
+  const filteredDocs =
+    selectedFilter === "todos"
+      ? documents
+      : documents.filter((doc) => doc.type === selectedFilter);
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>📄 Mis Documentos</Text>
-        <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: cancerColor.color }]}
-          onPress={() => setModalVisible(true)}
-        >
-          <Text style={styles.addButtonText}>+ Nuevo</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* FILTROS */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
-        {['todos', 'prescription', 'test_result', 'image', 'other'].map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setSelectedFilter(f as any)}
-            style={[
-              styles.filterButton,
-              selectedFilter === f && { backgroundColor: cancerColor.color },
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                selectedFilter === f && { color: '#fff' },
-              ]}
-            >
-              {f === 'todos' ? 'Todos' :
-               f === 'prescription' ? 'Recetas' :
-               f === 'test_result' ? 'Resultados' :
-               f === 'image' ? 'Imágenes' : 'Otros'}
+    <View style={styles.container}>
+      {!hideHeader && (
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Mis Documentos</Text>
+            <Text style={styles.headerSubtitle}>
+              Guarda tus recetas, resultados y documentos médicos
             </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* LISTADO */}
-      {filteredDocs.length === 0 ? (
-        <Text style={styles.empty}>No hay documentos disponibles.</Text>
-      ) : (
-        filteredDocs.map((doc) => (
+          </View>
           <TouchableOpacity
-            key={doc.id}
-            style={styles.card}
-            onPress={() => setPreviewDoc(doc)}
+            style={[styles.primaryBtn, { backgroundColor: cancerColor.color }]}
+            onPress={() => setIsModalVisible(true)}
           >
-            <Image source={{ uri: doc.url }} style={styles.image} />
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardTitle}>{doc.title}</Text>
-              {doc.description ? (
-                <Text style={styles.cardDesc}>{doc.description}</Text>
-              ) : null}
-              <Text style={styles.cardDate}>
-                {new Date(doc.uploadDate).toLocaleDateString('es-CL')}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={() => handleDelete(doc.id)}>
-              <Text style={styles.deleteText}>🗑</Text>
-            </TouchableOpacity>
+            <Ionicons name="add" size={18} color="#fff" />
+            <Text style={styles.primaryBtnText}>Nuevo</Text>
           </TouchableOpacity>
-        ))
+        </View>
       )}
 
-      {/* MODAL NUEVO DOCUMENTO */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Nuevo Documento</Text>
+      {/* Filtros */}
+      {documents.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterRow}
+        >
+          {["todos", "examen", "cirugia", "receta", "radioterapia", "otro"].map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setSelectedFilter(type as any)}
+              style={[
+                styles.filterBtn,
+                selectedFilter === type && {
+                  backgroundColor: cancerColor.color,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  selectedFilter === type && { color: "white" },
+                ]}
+              >
+                {type === "todos" ? "Todos" : getDocumentTypeLabel(type as DocumentType)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
+      {/* Lista de documentos */}
+      <ScrollView contentContainerStyle={styles.docList}>
+        {filteredDocs.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Ionicons name="folder-open" size={48} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>Sin documentos</Text>
+            <Text style={styles.emptyText}>
+              Guarda tus exámenes, recetas o informes médicos aquí.
+            </Text>
+          </View>
+        ) : (
+          filteredDocs.map((doc) => (
+            <View key={doc.id} style={styles.docCard}>
+              {doc.url ? (
+                <Image source={{ uri: doc.url }} style={styles.docImage} />
+              ) : (
+                <View style={styles.docPlaceholder}>
+                  <Ionicons name="document-text" size={36} color="#9CA3AF" />
+                </View>
+              )}
+              <View style={styles.docInfo}>
+                <Text style={styles.docTitle} numberOfLines={1}>
+                  {doc.title}
+                </Text>
+                <Text style={styles.docDate}>
+                  {new Date(doc.uploadDate).toLocaleDateString("es-CL")}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => handleDeleteDocument(doc.id)}
+                style={styles.deleteBtn}
+              >
+                <Ionicons name="trash" size={18} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {/* Modal para nuevo documento */}
+      <Modal visible={isModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Nuevo Documento</Text>
             <TextInput
               placeholder="Título"
               style={styles.input}
-              value={title}
-              onChangeText={setTitle}
+              value={newDocTitle}
+              onChangeText={setNewDocTitle}
             />
-            <TextInput
-              placeholder="Descripción (opcional)"
-              style={[styles.input, { height: 60 }]}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-            />
+            <Text style={styles.label}>Tipo de documento</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {[
+                "examen",
+                "cirugia",
+                "receta",
+                "radioterapia",
+                "informe_medico",
+                "otro",
+              ].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => setNewDocType(type as DocumentType)}
+                  style={[
+                    styles.filterBtn,
+                    newDocType === type && {
+                      backgroundColor: cancerColor.color,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      newDocType === type && { color: "white" },
+                    ]}
+                  >
+                    {getDocumentTypeLabel(type as DocumentType)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-            <View style={styles.imagePreview}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.previewImage} />
-              ) : (
-                <Text style={styles.previewText}>Sin imagen seleccionada</Text>
-              )}
+            <View style={styles.uploadRow}>
+              <TouchableOpacity style={styles.uploadBtn} onPress={handleSelectFile}>
+                <Ionicons name="cloud-upload" size={20} color="#2563EB" />
+                <Text style={styles.uploadText}>Subir archivo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.uploadBtn} onPress={handleTakePhoto}>
+                <Ionicons name="camera" size={20} color="#2563EB" />
+                <Text style={styles.uploadText}>Tomar foto</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={pickImage}>
-                <Text style={styles.secondaryText}>Subir</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={takePhoto}>
-                <Text style={styles.secondaryText}>Cámara</Text>
-              </TouchableOpacity>
-            </View>
+            {selectedFile && (
+              <View style={styles.selectedFileBox}>
+                <Ionicons name="document" size={20} color="#2563EB" />
+                <Text style={styles.selectedFileName}>{selectedFile.name}</Text>
+              </View>
+            )}
 
-            <View style={styles.buttonRow}>
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.cancelBtn]}
-                onPress={() => setModalVisible(false)}
+                style={[styles.outlineBtn, { flex: 1 }]}
+                onPress={() => {
+                  resetForm();
+                  setIsModalVisible(false);
+                }}
               >
-                <Text style={styles.cancelText}>Cancelar</Text>
+                <Text style={styles.outlineText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, { backgroundColor: cancerColor.color }]}
+                style={[
+                  styles.primaryBtn,
+                  { flex: 1, backgroundColor: cancerColor.color },
+                ]}
                 onPress={handleAddDocument}
+                disabled={isLoading}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.saveText}>Guardar</Text>
+                  <Text style={styles.primaryBtnText}>Guardar</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -254,66 +316,143 @@ export default function DocumentsPatient() {
         </View>
       </Modal>
 
-      {/* MODAL PREVISUALIZACIÓN */}
-      <Modal visible={!!previewDoc} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {previewDoc && (
-              <>
-                <Image
-                  source={{ uri: previewDoc.url }}
-                  style={styles.previewLarge}
-                  resizeMode="contain"
-                />
-                <Text style={styles.modalTitle}>{previewDoc.title}</Text>
-                {previewDoc.description ? (
-                  <Text style={styles.previewText}>{previewDoc.description}</Text>
-                ) : null}
-                <TouchableOpacity
-                  style={[styles.saveBtn, { backgroundColor: cancerColor.color }]}
-                  onPress={() => setPreviewDoc(null)}
-                >
-                  <Text style={styles.saveText}>Cerrar</Text>
-                </TouchableOpacity>
-              </>
-            )}
+      {/* Modal de documento (vista previa simple) */}
+      {selectedDocument && (
+        <Modal visible onRequestClose={() => setSelectedDocument(null)} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Text style={styles.modalTitle}>{selectedDocument.title}</Text>
+              {selectedDocument.url ? (
+                <Image source={{ uri: selectedDocument.url }} style={styles.previewImage} />
+              ) : (
+                <Ionicons name="document-text" size={48} color="#9CA3AF" />
+              )}
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: cancerColor.color }]}
+                onPress={() => setSelectedDocument(null)}
+              >
+                <Text style={styles.primaryBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
+        </Modal>
+      )}
+    </View>
   );
 }
 
+// 🎨 Estilos nativos
 const styles = StyleSheet.create({
-  container: { padding: 20, backgroundColor: '#f9fafb' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#111' },
-  addButton: { padding: 10, borderRadius: 8 },
-  addButtonText: { color: '#fff', fontWeight: '600' },
-  filters: { marginBottom: 15 },
-  filterButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, backgroundColor: '#eee', marginRight: 8 },
-  filterText: { fontSize: 13, color: '#333' },
-  empty: { textAlign: 'center', color: '#777', marginTop: 50 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, padding: 10, marginBottom: 10, elevation: 2 },
-  image: { width: 60, height: 60, borderRadius: 6, marginRight: 10 },
-  cardInfo: { flex: 1 },
-  cardTitle: { fontWeight: '600', fontSize: 15, color: '#222' },
-  cardDesc: { fontSize: 12, color: '#666', marginVertical: 2 },
-  cardDate: { fontSize: 11, color: '#999' },
-  deleteText: { fontSize: 18, color: '#e63946', paddingHorizontal: 6 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalCard: { width: '100%', backgroundColor: '#fff', borderRadius: 12, padding: 20 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#111' },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 10 },
-  imagePreview: { alignItems: 'center', marginVertical: 10 },
-  previewImage: { width: 100, height: 100, borderRadius: 8 },
-  previewText: { color: '#777', fontSize: 13 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  secondaryBtn: { flex: 1, backgroundColor: '#eee', padding: 10, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
-  secondaryText: { color: '#333', fontWeight: '500' },
-  cancelBtn: { flex: 1, backgroundColor: '#ccc', padding: 10, borderRadius: 8, alignItems: 'center', marginRight: 5 },
-  cancelText: { color: '#333', fontWeight: '500' },
-  saveBtn: { flex: 1, padding: 10, borderRadius: 8, alignItems: 'center', marginLeft: 5 },
-  saveText: { color: '#fff', fontWeight: '600' },
-  previewLarge: { width: 280, height: 280, marginBottom: 10, borderRadius: 10 },
+  container: { flex: 1, padding: 16, backgroundColor: "#F9FAFB" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: "#111827" },
+  headerSubtitle: { color: "#6B7280", fontSize: 13 },
+  primaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  primaryBtnText: { color: "white", fontWeight: "600", marginLeft: 6 },
+  outlineBtn: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  outlineText: { color: "#111827", fontWeight: "600" },
+  filterRow: { marginBottom: 16 },
+  filterBtn: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  filterText: { color: "#374151", fontWeight: "500", fontSize: 13 },
+  docList: { gap: 12 },
+  docCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 10,
+    elevation: 1,
+    marginBottom: 10,
+  },
+  docImage: { width: 60, height: 60, borderRadius: 8 },
+  docPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  docInfo: { flex: 1, marginLeft: 10 },
+  docTitle: { fontWeight: "600", color: "#111827" },
+  docDate: { color: "#6B7280", fontSize: 12 },
+  deleteBtn: { padding: 8 },
+  emptyBox: { alignItems: "center", marginTop: 40 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", marginTop: 8, color: "#374151" },
+  emptyText: { color: "#6B7280", fontSize: 13, textAlign: "center", marginTop: 4 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalBox: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    width: "100%",
+  },
+  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12, color: "#111827" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+  },
+  label: { fontWeight: "600", color: "#374151", marginBottom: 6 },
+  uploadRow: { flexDirection: "row", justifyContent: "space-between", marginVertical: 8 },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  uploadText: { marginLeft: 6, color: "#2563EB", fontWeight: "500" },
+  selectedFileBox: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 8,
+    padding: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  selectedFileName: { marginLeft: 8, color: "#1E3A8A", fontWeight: "500" },
+  modalActions: { flexDirection: "row", justifyContent: "space-between", marginTop: 16 },
+  previewImage: {
+    width: "100%",
+    height: 300,
+    borderRadius: 8,
+    marginBottom: 16,
+    resizeMode: "contain",
+  },
 });

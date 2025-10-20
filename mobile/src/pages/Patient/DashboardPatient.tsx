@@ -1,135 +1,119 @@
-import React, { useState } from 'react';
-import {View, Text,TouchableOpacity,StyleSheet, SafeAreaView,ScrollView,Alert,} from 'react-native';
-import { useAuth } from '../../context/AuthContext';
-import HomePatient from '../../pages/Patient/Home';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import { BottomNavigation } from "../../components/BottomNavigation";
+import { patientTabs } from "../../common/config/navigationsTabs";
+import { usePatientData } from "../../hooks/usePatientData";
 
-// Pantallas hijas 
-import NotesPatient from '../../pages/Patient/Notes';
-import DocumentsPatient from '../../pages/Patient/Documents';
-import ProfilePatient from '../../pages/Patient/Profile';
+// 👇 Importar las pantallas específicas del paciente
+import { HomePatient } from "./Home";
+import { NotesPatient } from "./Notes";
+import { DocumentsPatient } from "./Documents";
+import { ProfilePatient } from "./Profile";
 
-export default function DashboardPatient() {
+export function DashboardPatient() {
   const { user, logout } = useAuth();
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState<'home' | 'notes' | 'documents' | 'profile'>('home');
+  const [activeTab, setActiveTab] = useState("home");
+  const { cancerColor } = usePatientData();
 
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem(`patientProfile_${user?.id}`);
+  const handleLogout = () => {
     logout();
-    navigation.navigate('Login');
+    navigation.replace("Login"); // 👈 o el nombre de tu pantalla inicial
   };
 
- 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home':
-        return <HomePatient />;
-      case 'notes':
+      case "home":
+        return <HomePatient onTabChange={setActiveTab} />;
+      case "notes":
         return <NotesPatient />;
-      case 'documents':
-        return <DocumentsPatient />; 
-      case 'profile':
+      case "documents":
+        return <DocumentsPatient />;
+      case "profile":
         return <ProfilePatient />;
       default:
         return null;
     }
   };
 
-  // Barra inferior simple tipo BottomNavigation
-  const renderBottomNavigation = () => (
-    <View style={styles.bottomNav}>
-      {[
-        { id: 'home', label: 'Inicio' },
-        { id: 'notes', label: 'Notas' },
-        { id: 'documents', label: 'Docs' },
-        { id: 'profile', label: 'Perfil' },
-      ].map((tab) => (
-        <TouchableOpacity
-          key={tab.id}
-          style={[styles.tabButton, activeTab === tab.id && styles.tabActive]}
-          onPress={() => setActiveTab(tab.id as any)}
-        >
-          <Text
-            style={[
-              styles.tabLabel,
-              { color: activeTab === tab.id ? '#fa8fb5' : '#555' },
-            ]}
-          >
-            {tab.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Mi Ficha Médica</Text>
-          <Text style={styles.subtitle}>Bienvenido/a, {user?.name}</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Mi Ficha Médica</Text>
+            <Text style={styles.subtitle}>Bienvenido/a, {user?.name}</Text>
+          </View>
+          <TouchableOpacity onPress={handleLogout} style={styles.outlineBtn}>
+            <Text style={styles.outlineText}>Cerrar Sesión</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Cerrar sesión</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* Contenido dinámico */}
-      <ScrollView style={{ flex: 1 }}>{renderContent()}</ScrollView>
+        {/* Contenido dinámico */}
+        <View style={styles.contentBox}>{renderContent()}</View>
+      </ScrollView>
 
-      {/* Navegación inferior */}
-      {renderBottomNavigation()}
-    </SafeAreaView>
+      {/* Bottom Navigation */}
+      <BottomNavigation
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        accentColor={cancerColor.color}
+        tabs={patientTabs}
+      />
+    </View>
   );
 }
 
+// 🎨 Estilos equivalentes al diseño web
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#F9FAFB",
+  },
+  scrollContainer: {
+    padding: 16,
+    paddingBottom: 100,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  subtitle: { color: '#555', fontSize: 14 },
-  logoutButton: {
-    borderColor: '#fa8fb5',
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  subtitle: {
+    color: "#6B7280",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  outlineBtn: {
     borderWidth: 1,
+    borderColor: "#D1D5DB",
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
-  logoutText: {
-    color: '#fa8fb5',
-    fontWeight: '600',
+  outlineText: {
+    color: "#111827",
+    fontWeight: "600",
   },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    backgroundColor: '#fff',
+  contentBox: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
   },
-  tabButton: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    flex: 1,
-  },
-  tabActive: {
-    borderTopWidth: 3,
-    borderTopColor: '#fa8fb5',
-  },
-  tabLabel: { fontSize: 14, fontWeight: '500' },
 });
