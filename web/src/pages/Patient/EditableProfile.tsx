@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientData } from '@/hooks/usePatientData';
 import { apiService } from '@/services/api';
@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
+import { ImageCropDialog } from '@/components/ui/image-crop-dialog';
 import { 
   User, 
   Palette, 
@@ -31,11 +32,14 @@ export function EditableProfile() {
   const { user, logout } = useAuth();
   const { patientId } = usePatientData();
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [userPhoto, setUserPhoto] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de edición
-  const [editingPhoto, setEditingPhoto] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingMeds, setEditingMeds] = useState(false);
   const [editingAllergies, setEditingAllergies] = useState(false);
@@ -44,7 +48,6 @@ export function EditableProfile() {
   const [editingTreatment, setEditingTreatment] = useState(false);
   
   // Estados temporales
-  const [tempPhoto, setTempPhoto] = useState('');
   const [tempName, setTempName] = useState('');
   const [tempMeds, setTempMeds] = useState<string[]>([]);
   const [tempAllergies, setTempAllergies] = useState<string[]>([]);
@@ -54,21 +57,31 @@ export function EditableProfile() {
 
   // Cargar datos del paciente
   useEffect(() => {
-    const loadPatient = async () => {
+    const loadData = async () => {
       if (patientId) {
         try {
           setLoading(true);
-          const data = await apiService.patients.getOne(patientId);
-          setPatient(data);
+          const patientData = await apiService.patients.getOne(patientId);
+          setPatient(patientData);
+          
+          // Cargar foto de perfil del usuario
+          if (user?.id) {
+            try {
+              const photoData = await apiService.users.getProfilePicture(user.id);
+              setUserPhoto(photoData);
+            } catch (error) {
+              console.log('No profile picture found');
+            }
+          }
         } catch (error) {
-          console.error('Error loading patient:', error);
+          console.error('Error loading data:', error);
         } finally {
           setLoading(false);
         }
       }
     };
-    loadPatient();
-  }, [patientId]);
+    loadData();
+  }, [patientId, user?.id]);
 
   // Función para verificar si puede editar un campo
   const canEdit = (field: keyof Patient): boolean => {
@@ -93,19 +106,6 @@ export function EditableProfile() {
       return false;
     } finally {
       setSaving(false);
-    }
-  };
-
-  // ==== FOTO ====
-  const startEditingPhoto = () => {
-    if (!patient) return;
-    setTempPhoto(patient.photo || '');
-    setEditingPhoto(true);
-  };
-
-  const savePhoto = async () => {
-    if (await saveField('photo', tempPhoto)) {
-      setEditingPhoto(false);
     }
   };
 
@@ -220,8 +220,30 @@ export function EditableProfile() {
   };
 
   const handleLogout = () => {
-    if (confirm('¿Estás seguro de cerrar sesión?')) {
-      logout();
+    logout();
+  };
+
+  const handleCropComplete = async (croppedImageBlob: Blob) => {
+    if (!user) return;
+
+    try {
+      setSaving(true);
+      // Convertir el blob a File
+      const croppedFile = new File([croppedImageBlob], 'profile-picture.jpg', {
+        type: 'image/jpeg',
+      });
+
+      const result = await apiService.users.uploadProfilePicture(user.id, croppedFile);
+      setUserPhoto(result);
+      alert('✅ Foto de perfil actualizada correctamente');
+
+      // Limpiar el estado
+      setSelectedImageSrc(null);
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      alert('❌ Error al subir la foto. Intenta nuevamente.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -271,43 +293,53 @@ export function EditableProfile() {
             {/* Avatar */}
             <div className="space-y-2">
               <Avatar className="w-20 h-20">
-                <AvatarImage src={patient.photo} alt={patient.name} />
+                <AvatarImage src={userPhoto?.url} alt={patient?.name} />
                 <AvatarFallback className="text-lg" style={{ backgroundColor: currentCancerColor.color + '40' }}>
-                  {patient.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  {patient?.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              {canEdit('photo') && !editingPhoto && (
-                <Button size="sm" variant="outline" onClick={startEditingPhoto} className="w-full">
+              <div className="text-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    console.log('Button clicked, triggering file input');
+                    fileInputRef.current?.click();
+                  }}
+                >
                   <Edit3 className="w-3 h-3 mr-1" />
-                  Editar
+                  Cambiar Foto
                 </Button>
-              )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    console.log('handlePhotoUpload called', e.target.files);
+                    const file = e.target.files?.[0];
+                    if (!file) {
+                      console.log('No file selected');
+                      return;
+                    }
+
+                    console.log('File selected:', file.name, file.size);
+
+                    // Limpiar el input ANTES de procesar para evitar problemas
+                    e.target.value = '';
+
+                    // Crear URL para mostrar en el diálogo de recorte
+                    const imageUrl = URL.createObjectURL(file);
+                    console.log('Image URL created:', imageUrl);
+                    setSelectedImageSrc(imageUrl);
+                    setCropDialogOpen(true);
+                  }}
+                />
+              </div>
             </div>
 
             {/* Info */}
             <div className="flex-1 space-y-4">
-              {/* Editar foto */}
-              {editingPhoto && (
-                <div className="space-y-2 p-3 border rounded-lg bg-gray-50">
-                  <Label htmlFor="photo">URL de la foto</Label>
-                  <Input
-                    id="photo"
-                    value={tempPhoto}
-                    onChange={(e) => setTempPhoto(e.target.value)}
-                    placeholder="https://..."
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={savePhoto} disabled={saving}>
-                      <Save className="w-3 h-3 mr-1" />
-                      Guardar
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingPhoto(false)}>
-                      <X className="w-3 h-3 mr-1" />
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              )}
 
               {/* Nombre */}
               <div>
@@ -794,6 +826,15 @@ export function EditableProfile() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Diálogo de recorte de imagen */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={selectedImageSrc}
+        onCropComplete={handleCropComplete}
+        aspect={1} // Cuadrado
+      />
     </div>
   );
 }

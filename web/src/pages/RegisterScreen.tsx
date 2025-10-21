@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CancerRibbon } from "@/components/CancerRibbon";
-import LogoUniversidad from "@/assets/icons/logo_ucn.svg?react";
+import LogoUniversidad from "../assets/logo_ucn.svg?react";
 import {
   validateRegistrationForm,
   formatRUT
@@ -236,7 +236,7 @@ export function RegisterScreen() {
                 disabled={isLoading}
               >
                 <option value="patient">Paciente</option>
-                <option value="doctor">Doctor</option>
+                <option value="doctor">Médico/a</option>
                 <option value="nurse">Enfermera/o</option>
                 <option value="guardian">Cuidador/a</option>
               </select>

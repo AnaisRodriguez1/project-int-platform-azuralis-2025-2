@@ -4,9 +4,9 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, UserSearch, AlertCircle, Clock, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, UserSearch, AlertCircle, Clock } from 'lucide-react';
 import type { Patient, DoctorUser, NurseUser, SearchRecord } from '@/types/medical';
 import { validateRUT } from '@/common/helpers/ValidateForm';
 
@@ -45,10 +45,11 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
           sortedHistory.map(async (record) => {
             try {
               const name = await apiService.patients.getName(record.patientId);
-              return { ...record, patientName: name };
+              // For now, patients don't have profile pictures, so we use null
+              return { ...record, patientName: name, patientPhoto: null };
             } catch (error) {
               console.error(`Error cargando nombre para paciente ${record.patientId}:`, error);
-              return { ...record, patientName: 'Nombre no disponible' };
+              return { ...record, patientName: 'Nombre no disponible', patientPhoto: null };
             }
           })
         ).then((historyWithNames) => {
@@ -168,7 +169,6 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
             </svg>
             <span>Volver</span>
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Buscar Paciente</h1>
         </div>
 
         {/* Tarjeta de búsqueda */}
@@ -178,15 +178,11 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
               <UserSearch className="w-6 h-6 text-blue-600" />
               <span>Buscar por RUT</span>
             </CardTitle>
-            <p className="text-sm text-gray-600 mt-2">
-              Ingresa el RUT del paciente para acceder a su ficha médica
-            </p>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSearch} className="space-y-4">
               <div>
-                <Label htmlFor="rut">RUT del Paciente</Label>
                 <div className="flex space-x-2">
                   <Input
                     id="rut"
@@ -196,7 +192,7 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
                       setRut(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="12345678-9 o 12.345.678-9"
+                    placeholder="Ingrese el RUT del paciente con o sin puntos"
                     disabled={loading}
                     className="flex-1"
                   />
@@ -218,9 +214,6 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Puedes ingresar el RUT con o sin puntos
-                </p>
               </div>
 
               {/* Mensaje de error */}
@@ -245,7 +238,7 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
                 <span>Búsquedas Recientes</span>
               </CardTitle>
               <p className="text-sm text-gray-600 mt-2">
-                Últimas 5 búsquedas (QR móvil + web, sin duplicados)
+                Últimas 5 búsquedas (QR móvil y web)
               </p>
             </CardHeader>
 
@@ -260,15 +253,18 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <User className="w-5 h-5 text-blue-600" />
-                        </div>
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={item.patientPhoto?.url} alt={item.patientName} />
+                          <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                            {item.patientName?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'NN'}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <p className="font-semibold text-gray-900">
                             {item.patientName || 'Cargando...'}
                           </p>
                           <p className="text-sm text-gray-600">
-                            RUT: {item.patientRut}
+                            {item.patientRut}
                           </p>
                           <p className="text-xs text-gray-500">
                             {formatDate(item.searchedAt)}

@@ -154,6 +154,7 @@ export interface SearchRecord {
   patientId: string;
   patientRut: string;
   patientName?: string; // Nombre del paciente (se carga dinámicamente)
+  patientPhoto?: any; // Foto de perfil del paciente (se carga dinámicamente)
   searchedAt: Date;
 }
 

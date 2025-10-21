@@ -1,19 +1,6 @@
-/**
- * DashboardClinicalStaff Component
- * 
- * Unified dashboard for clinical staff (doctors and nurses)
- * Features:
- * - Patient search by RUT
- * - Patient list management
- * - Profile completion workflow
- * - Statistics display
- * 
- * @component
- */
-
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BottomNavigation } from "@/components/BottomNavigation";
 import { clinicalStaffTabs } from "@/common/config/navigationTabs";
 import type { DoctorUser, NurseUser, Patient } from "@/types/medical";
@@ -25,6 +12,8 @@ import { CompleteNurseProfile } from "@/components/CompleteNurseProfile";
 import { CareTeamPatientsList } from "@/components/CareTeamPatientsList";
 import { apiService } from "@/services/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ImageCropDialog } from "@/components/ui/image-crop-dialog";
 
 interface Stats {
   totalPatients: number;
@@ -39,48 +28,60 @@ export function DashboardClinicalStaff() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
-  const [stats, setStats] = useState<Stats>({ 
-    totalPatients: 0, 
+  const [stats, setStats] = useState<Stats>({
+    totalPatients: 0,
     searchHistory: 0,
-    myPatients: 0 
+    myPatients: 0,
   });
+  const [userPhoto, setUserPhoto] = useState<any>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const isDoctor = user?.role === 'doctor';
-  const isNurse = user?.role === 'nurse';
-  const accentColor = isDoctor ? "#3B82F6" : "#00B4D8";
+  const isDoctor = user?.role === "doctor";
+  const isNurse = user?.role === "nurse";
+  const accentColor = isDoctor ? "#001663" : "#00B4D8";
   const roleLabel = isDoctor ? "Doctor" : "Enfermera";
 
-  // Check if profile needs completion
+  // Load user profile picture
   useEffect(() => {
-    if (!user) return;
-
-    const needsCompletion = isDoctor
-      ? !(user as DoctorUser).specialization || !(user as DoctorUser).license
-      : !(user as NurseUser).department || !(user as NurseUser).license;
-
-    setNeedsProfileCompletion(needsCompletion);
-  }, [user, isDoctor, isNurse]);
+    const loadUserPhoto = async () => {
+      if (user?.id) {
+        try {
+          const photoData = await apiService.users.getProfilePicture(user.id);
+          setUserPhoto(photoData);
+        } catch (error) {
+          console.log('No profile picture found');
+        }
+      }
+    };
+    loadUserPhoto();
+  }, [user?.id]);
 
   // Load dashboard statistics
   useEffect(() => {
     const loadStats = async () => {
       if (!user || (!isDoctor && !isNurse)) return;
-      
+
       try {
         const allPatients = await apiService.patients.getAll();
         const clinicalUser = user as DoctorUser | NurseUser;
-        
-        const myPatients = allPatients.filter((patient: Patient) => 
-          patient.careTeam?.some((member) => member.userId === user.id)
+
+        const myPatients = allPatients.filter((patient: Patient) =>
+          patient.careTeam?.some((member) => {
+            // La comparación ahora es insensible a mayúsculas/minúsculas
+            return member.userId.toLowerCase() === user.id.toLowerCase();
+          })
         );
-        
+
         setStats({
           totalPatients: allPatients.length,
           searchHistory: clinicalUser.searchHistory?.length || 0,
-          myPatients: myPatients.length
+          myPatients: myPatients.length,
         });
       } catch (error) {
-        console.error('Error loading statistics:', error);
+        console.error("Error loading statistics:", error);
         setStats({ totalPatients: 0, searchHistory: 0, myPatients: 0 });
       }
     };
@@ -105,6 +106,50 @@ export function DashboardClinicalStaff() {
     );
   }
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handlePhotoUpload called', event.target.files);
+    const file = event.target.files?.[0];
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name, file.size);
+
+    // Limpiar el input ANTES de procesar para evitar problemas
+    event.target.value = '';
+
+    // Crear URL para mostrar en el diálogo de recorte
+    const imageUrl = URL.createObjectURL(file);
+    console.log('Image URL created:', imageUrl);
+    setSelectedImageSrc(imageUrl);
+    setCropDialogOpen(true);
+  };
+
+  const handleCropComplete = async (croppedImageBlob: Blob) => {
+    if (!user) return;
+
+    try {
+      setUploadingPhoto(true);
+      // Convertir el blob a File
+      const croppedFile = new File([croppedImageBlob], 'profile-picture.jpg', {
+        type: 'image/jpeg',
+      });
+
+      const result = await apiService.users.uploadProfilePicture(user.id, croppedFile);
+      setUserPhoto(result);
+      alert('✅ Foto de perfil actualizada correctamente');
+
+      // Limpiar el estado
+      setSelectedImageSrc(null);
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      alert('❌ Error al subir la foto. Intenta nuevamente.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -112,7 +157,7 @@ export function DashboardClinicalStaff() {
 
   const onTabChange = (tabId: string) => {
     setActiveTab(tabId); // Siempre actualizar el tab activo
-    
+
     if (tabId === "search") {
       setShowSearch(true);
       setSelectedPatient(null);
@@ -125,13 +170,13 @@ export function DashboardClinicalStaff() {
   const handlePatientFound = async (patient: Patient) => {
     setSelectedPatient(patient);
     setShowSearch(false);
-    
+
     // Guardar en historial de búsquedas
     try {
       // TODO: HECHO, NO TOCAR
-      console.log('Paciente encontrado:', patient.id, patient.rut);
+      console.log("Paciente encontrado:", patient.id, patient.rut);
     } catch (error) {
-      console.error('Error al guardar historial:', error);
+      console.error("Error al guardar historial:", error);
     }
   };
 
@@ -168,9 +213,9 @@ export function DashboardClinicalStaff() {
   if (selectedPatient) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <EditablePatientRecord 
-          patient={selectedPatient} 
-          onBack={handleBackFromRecord} 
+        <EditablePatientRecord
+          patient={selectedPatient}
+          onBack={handleBackFromRecord}
         />
         {/* Bottom Navigation */}
         <BottomNavigation
@@ -192,7 +237,7 @@ export function DashboardClinicalStaff() {
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-2">
-                  Bienvenido/a, {user?.name}
+                  Bienvenido/a
                 </h2>
                 <p className="text-blue-100">
                   Panel de {roleLabel} - Sistema de Fichas Médicas
@@ -214,8 +259,18 @@ export function DashboardClinicalStaff() {
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <svg
+                        className="w-6 h-6 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -234,8 +289,18 @@ export function DashboardClinicalStaff() {
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      <svg
+                        className="w-6 h-6 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -254,8 +319,18 @@ export function DashboardClinicalStaff() {
                       </p>
                     </div>
                     <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      <svg
+                        className="w-6 h-6 text-purple-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -275,8 +350,18 @@ export function DashboardClinicalStaff() {
                     className="bg-blue-600 hover:bg-blue-700 h-auto py-4"
                   >
                     <div className="flex items-center space-x-3">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                       </svg>
                       <div className="text-left">
                         <p className="font-semibold">Buscar Paciente</p>
@@ -291,8 +376,18 @@ export function DashboardClinicalStaff() {
                     className="h-auto py-4"
                   >
                     <div className="flex items-center space-x-3">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
                       </svg>
                       <div className="text-left">
                         <p className="font-semibold">Equipo de Cuidados</p>
@@ -317,6 +412,45 @@ export function DashboardClinicalStaff() {
         const clinicalUser = user as DoctorUser | NurseUser;
         return (
           <div className="mt-8 space-y-6">
+            {/* Foto de Perfil */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Foto de Perfil
+                </h3>
+                <div className="flex items-center space-x-4">
+                  <Avatar className="w-16 h-16">
+                    <AvatarImage src={userPhoto?.url} alt={user?.name} />
+                    <AvatarFallback style={{ backgroundColor: accentColor + '40', color: accentColor }}>
+                      {user?.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Button
+                      variant="outline"
+                      disabled={uploadingPhoto}
+                      onClick={() => {
+                        console.log('Button clicked, triggering file input');
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      {uploadingPhoto ? 'Subiendo...' : 'Cambiar Foto'}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Formatos: JPG, PNG. Tamaño máximo: 5MB
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Información Profesional */}
             <Card>
               <CardContent className="p-6">
@@ -326,8 +460,18 @@ export function DashboardClinicalStaff() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-start space-x-3">
                     <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
                       </svg>
                     </div>
                     <div>
@@ -339,8 +483,18 @@ export function DashboardClinicalStaff() {
                   {isDoctor && (
                     <div className="flex items-start space-x-3">
                       <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        <svg
+                          className="w-5 h-5 text-green-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                          />
                         </svg>
                       </div>
                       <div>
@@ -355,8 +509,18 @@ export function DashboardClinicalStaff() {
                   {isNurse && (
                     <div className="flex items-start space-x-3">
                       <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        <svg
+                          className="w-5 h-5 text-cyan-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
                         </svg>
                       </div>
                       <div>
@@ -370,8 +534,18 @@ export function DashboardClinicalStaff() {
 
                   <div className="flex items-start space-x-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-5 h-5 text-purple-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
                     <div>
@@ -386,11 +560,7 @@ export function DashboardClinicalStaff() {
             </Card>
 
             {/* Botón Cerrar Sesión */}
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="w-full"
-            >
+            <Button onClick={handleLogout} variant="outline" className="w-full">
               Cerrar Sesión
             </Button>
           </div>
@@ -406,28 +576,32 @@ export function DashboardClinicalStaff() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow p-6">
           {/* Header con Avatar */}
-          <div 
+          <div
             className="rounded-lg p-6 text-white mb-6"
-            style={{ 
-              background: `linear-gradient(to right, ${accentColor}, ${accentColor}dd)` 
+            style={{
+              background: `linear-gradient(to right, ${accentColor}, ${accentColor}dd)`,
             }}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-3xl font-bold"
-                  style={{ color: accentColor }}
-                >
-                  {user?.name.charAt(0).toUpperCase()}
+                <div className="relative">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={userPhoto?.url} alt={user?.name} />
+                    <AvatarFallback className="text-3xl font-bold" style={{ backgroundColor: accentColor + '40', color: accentColor }}>
+                      {user?.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold">{user?.name}</h2>
-                  <p className="text-white/90 text-sm mt-1">
-                    {isDoctor 
-                      ? `Especialización: ${(user as DoctorUser).specialization}`
-                      : `Departamento: ${(user as NurseUser).department}`
-                    }
+                  <p className="text-white text-sm mt-1">
+                    {isDoctor
+                      ? `Especialización: ${
+                          (user as DoctorUser).specialization
+                        }`
+                      : `Departamento: ${(user as NurseUser).department}`}
                   </p>
-                  <p className="text-white/90 text-sm">{user?.email}</p>
+                  <p className="text-white text-sm">{user?.email}</p>
                 </div>
               </div>
             </div>
@@ -444,6 +618,15 @@ export function DashboardClinicalStaff() {
         onTabChange={onTabChange}
         accentColor={accentColor}
         tabs={clinicalStaffTabs}
+      />
+
+      {/* Diálogo de recorte de imagen */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={selectedImageSrc}
+        onCropComplete={handleCropComplete}
+        aspect={1} // Cuadrado
       />
     </div>
   );

@@ -81,6 +81,28 @@ export const apiService = {
       })
       return data
     },
+
+    uploadProfilePicture: async (userId: string, file: File): Promise<any> => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const { data } = await api.post(`/users/${userId}/profile-picture`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      return data
+    },
+
+    getProfilePicture: async (userId: string): Promise<any> => {
+      const { data } = await api.get(`/users/${userId}/profile-picture`)
+      return data
+    },
+
+    deleteProfilePicture: async (userId: string): Promise<any> => {
+      const { data } = await api.delete(`/users/${userId}/profile-picture`)
+      return data
+    },
   },
 
   // ==================== PATIENTS ====================

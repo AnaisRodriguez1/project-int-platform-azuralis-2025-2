@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PatientDocument } from '../entities/patient-document.entity';
-import { AzureStorageService } from '../../shared/services/azure-storage.service';
+import { AzureStorageService } from './azure-storage.service';
 
 @Injectable()
 export class PatientDocumentsService {

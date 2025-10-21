@@ -110,7 +110,7 @@ export class PatientsService {
       currentMedications: this.parseJsonString(patient.currentMedications),
       careTeam: patient.careTeam || [], // Asegurar que careTeam siempre sea un array
       emergencyContacts: patient.emergencyContacts || [], // Asegurar array
-      operations: [], // TODO: Implementar operations en la BD
+      operations: [], 
     };
   }
 
@@ -231,11 +231,6 @@ export class PatientsService {
     
     console.log('✅ findPatientDocuments - Documentos encontrados:', documents.length);
     return documents;
-  }
-
-  async getScanHistory(patientId: string) {
-    // TODO: Implementar sin ScanHistory entity
-    return [];
   }
 
   async getPatientName(patientId: string): Promise<string> {

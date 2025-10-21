@@ -14,7 +14,7 @@ import { PatientsService } from './patients.service';
 import { CareTeamMember } from './entities/care-team-member.entity';
 import { CareTeamController } from './care-team/care-team.controller';
 import { CareTeamService } from './care-team/care-team.service';
-import { AzureStorageService } from '../shared/services/azure-storage.service';
+import { AzureStorageService } from './documents/azure-storage.service';
 
 @Module({
   imports: [

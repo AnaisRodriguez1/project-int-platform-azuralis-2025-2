@@ -39,7 +39,7 @@ import { CancerRibbon } from "./CancerRibbon";
 import { ManageCareTeam } from "./ManageCareTeam";
 import { useAuth } from "@/context/AuthContext";
 import { apiService } from "@/services/api";
-import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
+import LogoUniversidad from "../assets/logo_ucn.svg?react";
 
 interface EditablePatientRecordProps {
   patient: Patient;
@@ -73,6 +73,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [patientPhoto, setPatientPhoto] = useState<any>(null);
 
   // Estados para crear/editar notas
   const [creatingNote, setCreatingNote] = useState(false);
@@ -128,6 +129,21 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
     };
 
     loadDocuments();
+  }, [patient.id]);
+
+  // Load patient profile picture
+  useEffect(() => {
+    const loadPatientPhoto = async () => {
+      try {
+        // For now, patients don't have separate profile pictures
+        // This could be extended in the future with a patient-specific endpoint
+        setPatientPhoto(null);
+      } catch (error) {
+        console.log('No patient profile picture found');
+        setPatientPhoto(null);
+      }
+    };
+    loadPatientPhoto();
   }, [patient.id]);
 
   const formatDate = (dateString: string) => {
@@ -575,7 +591,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
           {/* Patient Header */}
           <div className="flex items-start space-x-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={patient.photo} alt={patient.name} />
+              <AvatarImage src={patientPhoto?.url} alt={patient.name} />
               <AvatarFallback
                 className="text-lg"
                 style={{ backgroundColor: cancerColor.color + "40" }}

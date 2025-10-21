@@ -14,11 +14,34 @@ DELETE FROM care_team_members;
 DELETE FROM emergency_contacts;
 DELETE FROM operations;
 DELETE FROM patients;
+DELETE FROM user_profile_pictures;
 DELETE FROM users;
 
 PRINT '==========================================';
 PRINT 'Base de datos limpiada completamente';
 PRINT '==========================================';
+
+-- ==========================================
+-- CREAR TABLAS SI NO EXISTEN
+-- ==========================================
+
+-- Crear tabla user_profile_pictures si no existe
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='user_profile_pictures' AND xtype='U')
+BEGIN
+    CREATE TABLE user_profile_pictures (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        userId UNIQUEIDENTIFIER NOT NULL,
+        url NVARCHAR(500) NOT NULL,
+        uploadDate DATETIME2 NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT FK_user_profile_pictures_user FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_user_profile_pictures_userId ON user_profile_pictures(userId);
+    PRINT 'Tabla user_profile_pictures creada';
+END
+ELSE
+BEGIN
+    PRINT 'Tabla user_profile_pictures ya existe';
+END
 
 -- ==========================================
 -- 1. USUARIOS - DOCTORES Y ENFERMERAS
