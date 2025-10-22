@@ -238,7 +238,7 @@ export class PatientsService {
 
   async getPatientName(patientId: string): Promise<string> {
     const patient = await this.patientRepo.findOne({
-      where: { id: patientId.toUpperCase() }, // Convertir a MAYÚSCULAS para buscar en BD
+      where: { id: patientId },
       select: ['name'],
     });
     
