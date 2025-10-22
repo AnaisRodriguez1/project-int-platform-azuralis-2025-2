@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { apiService } from "@/services/api";
 import type { Patient } from "@/types/medical";
 import { cancerColors } from "@/types/medical";
+import { calculateAge } from "@/common/helpers/CalculateAge";
 import { Users, ChevronRight, Loader2 } from "lucide-react";
 import { CancerRibbon } from "./CancerRibbon";
 
@@ -136,7 +137,7 @@ export function CareTeamPatientsList({ onPatientSelect }: CareTeamPatientsListPr
                         {patient.name}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        {patient.age} años
+                        {calculateAge(patient.dateOfBirth)} años
                       </p>
                     </div>
                   </div>

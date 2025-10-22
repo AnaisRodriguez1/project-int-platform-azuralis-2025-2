@@ -23,7 +23,8 @@
     "verify:azure": "ts-node --project tsconfig.scripts.json scripts/verify-azure-config.ts"
   },
   "dependencies": {
-    "@azure/storage-blob": "^12.29.1",
+    "@aws-sdk/client-s3": "^3.914.0",
+    "@aws-sdk/s3-request-presigner": "^3.914.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -35,7 +36,6 @@
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
-    "mssql": "^11.0.1",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

@@ -23,7 +23,7 @@ export class PatientDocument {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'datetime2', default: () => 'GETDATE()' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   uploadDate: string;
 
   @Column()

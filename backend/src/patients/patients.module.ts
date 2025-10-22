@@ -14,7 +14,7 @@ import { PatientsService } from './patients.service';
 import { CareTeamMember } from './entities/care-team-member.entity';
 import { CareTeamController } from './care-team/care-team.controller';
 import { CareTeamService } from './care-team/care-team.service';
-import { AzureStorageService } from './documents/azure-storage.service';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -26,8 +26,9 @@ import { AzureStorageService } from './documents/azure-storage.service';
       PatientDocument,
       CareTeamMember,
     ]),
+    SharedModule, // Importar el módulo compartido que exporta R2StorageService
   ],
   controllers: [PatientsController, PatientNotesController, PatientDocumentsController, CareTeamController],
-  providers: [PatientsService, PatientNotesService, PatientDocumentsService, CareTeamService, AzureStorageService],
+  providers: [PatientsService, PatientNotesService, PatientDocumentsService, CareTeamService],
 })
 export class PatientsModule {}

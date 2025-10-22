@@ -5,6 +5,7 @@ interface Patient {
   patientId: string;
   name: string;
   cancerType: CancerType;
+  selectedColor?: CancerType; // Color personalizado elegido por el paciente
   relationship?: string;
 }
 
@@ -24,6 +25,7 @@ export function PatientSelector({ patients }: PatientSelectorProps) {
       patientId: patient.patientId,
       name: patient.name,
       cancerType: patient.cancerType,
+      selectedColor: patient.selectedColor, // Incluir el color personalizado
     });
   };
 

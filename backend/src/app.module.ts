@@ -17,39 +17,31 @@ import { PatientsModule } from './patients/patients.module';
 
         if (isProduction) {
           // --- Se ejecutará con 'npm run prod' ---
-          const host = configService.get<string>('DBA_HOST')!;
-          const username = configService.get<string>('DBA_USERNAME')!;
+          const host = configService.get<string>('DB_HOST_PROD')!;
+          const username = configService.get<string>('DB_USER_PROD')!;
           
-          console.log('Connecting to PRODUCTION database (Azure SQL)...');
-          console.log('Server:', host);
-          console.log('Database:', configService.get<string>('DBA_DATABASE'));
-          console.log('Username:', username);
+          console.log('🚀 Connecting to PRODUCTION database (Supabase PostgreSQL)...');
+          console.log('📊 Server:', host);
+          console.log('📊 Database:', configService.get<string>('DB_NAME_PROD'));
+          console.log('👤 Username:', username);
           
           return {
-            type: 'mssql',
+            type: 'postgres',
             host: host,
-            port: parseInt(configService.get<string>('DBA_PORT', '1433')),
+            port: parseInt(configService.get<string>('DB_PORT_PROD', '5432')),
             username: username,
-            password: configService.get<string>('DBA_PASSWORD')!,
-            database: configService.get<string>('DBA_DATABASE')!,
+            password: configService.get<string>('DB_PASS_PROD')!,
+            database: configService.get<string>('DB_NAME_PROD')!,
             autoLoadEntities: true, // Cargar entidades
-            synchronize: false, // No sincronizar automáticamente en producción
+            synchronize: false, // ✅ Seguridad: No sincronizar automáticamente en producción
             logging: true, // Activar logging para ver qué pasa
-            options: {
-              encrypt: true, // Requerido por Azure
-              trustServerCertificate: false, // Azure SQL usa certificados válidos
-              enableArithAbort: true, // Requerido por Azure SQL
-              connectTimeout: 30000, // 30 segundos
-              requestTimeout: 30000,
-            },
-            extra: {
-              validateConnection: true,
-              trustServerCertificate: false,
+            ssl: {
+              rejectUnauthorized: false, // Supabase usa certificados SSL
             },
           };
         } else {
           // --- Se ejecutará con 'npm run dev' ---
-          console.log('Connecting to DEVELOPMENT database (Docker PostgreSQL)...');
+          console.log('🔧 Connecting to DEVELOPMENT database (Local PostgreSQL)...');
           return {
             type: 'postgres',
             host: configService.get<string>('DB_HOST')!,

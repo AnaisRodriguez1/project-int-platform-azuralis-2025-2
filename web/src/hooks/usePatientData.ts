@@ -40,11 +40,13 @@ export function usePatientData(): PatientData {
           const patientFound = allPatients.find((p: any) => p.rut === user.rut);
           
           if (patientFound) {
+            // Usar selectedColor si existe, sino usar cancerType
+            const colorKey = patientFound.selectedColor || patientFound.cancerType;
             setPatientData({
               patientId: patientFound.id,
               patientName: patientFound.name,
               cancerType: patientFound.cancerType,
-              cancerColor: cancerColors[patientFound.cancerType] || cancerColors.other
+              cancerColor: cancerColors[colorKey] || cancerColors.other
             });
           } else {
             // Fallback si no se encuentra
@@ -74,11 +76,13 @@ export function usePatientData(): PatientData {
             cancerColor: cancerColors.other
           });
         } else {
+          // Usar selectedColor si existe, sino usar cancerType
+          const colorKey: CancerType = currentPatient.selectedColor || currentPatient.cancerType;
           setPatientData({
             patientId: currentPatient.patientId,
             patientName: currentPatient.name,
             cancerType: currentPatient.cancerType,
-            cancerColor: cancerColors[currentPatient.cancerType] || cancerColors.other
+            cancerColor: cancerColors[colorKey] || cancerColors.other
           });
         }
       }

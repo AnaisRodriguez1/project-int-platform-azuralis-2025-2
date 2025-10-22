@@ -22,7 +22,7 @@ export function CompleteProfileForm({ onComplete }: CompleteProfileFormProps) {
 
   // Datos del formulario
   const [formData, setFormData] = useState({
-    age: '',
+    dateOfBirth: '',
     diagnosis: '',
     stage: '',
     cancerType: '' as CancerType,
@@ -57,7 +57,7 @@ export function CompleteProfileForm({ onComplete }: CompleteProfileFormProps) {
       const patientData = {
         name: user?.name || '',
         rut: user?.rut || '',
-        age: parseInt(formData.age) || 0,
+        dateOfBirth: formData.dateOfBirth,
         diagnosis: formData.diagnosis,
         stage: formData.stage,
         cancerType: formData.cancerType,
@@ -81,13 +81,12 @@ export function CompleteProfileForm({ onComplete }: CompleteProfileFormProps) {
   const renderStep1 = () => (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="age">Edad *</Label>
+        <Label htmlFor="dateOfBirth">Fecha de Nacimiento *</Label>
         <Input
-          id="age"
-          type="number"
-          value={formData.age}
-          onChange={(e) => handleInputChange('age', e.target.value)}
-          placeholder="Ej: 45"
+          id="dateOfBirth"
+          type="date"
+          value={formData.dateOfBirth}
+          onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
           required
         />
       </div>
@@ -143,7 +142,7 @@ export function CompleteProfileForm({ onComplete }: CompleteProfileFormProps) {
         type="button"
         onClick={() => setStep(2)}
         className="w-full"
-        disabled={!formData.age || !formData.diagnosis || !formData.stage || !formData.cancerType}
+        disabled={!formData.dateOfBirth || !formData.diagnosis || !formData.stage || !formData.cancerType}
       >
         Siguiente
       </Button>

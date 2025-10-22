@@ -3,7 +3,9 @@ import { useAuth } from '@/context/AuthContext';
 import { usePatientData } from '@/hooks/usePatientData';
 import { apiService } from '@/services/api';
 import { cancerColors, PATIENT_PERMISSIONS } from '@/types/medical';
-import type { Patient, EmergencyContact, Operation } from '@/types/medical';
+import type { Patient, EmergencyContact, Operation, CancerType } from '@/types/medical';
+import { calculateAge } from '@/common/helpers/CalculateAge';
+import { optimizeProfilePicture, getReadableFileSize } from '@/common/helpers/ImageOptimizer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -228,12 +230,18 @@ export function EditableProfile() {
 
     try {
       setSaving(true);
-      // Convertir el blob a File
-      const croppedFile = new File([croppedImageBlob], 'profile-picture.jpg', {
-        type: 'image/jpeg',
+      
+      // Optimizar la imagen antes de subirla (compresión + WebP)
+      console.log(`📸 Imagen original: ${getReadableFileSize(croppedImageBlob.size)}`);
+      const optimizedBlob = await optimizeProfilePicture(croppedImageBlob);
+      console.log(`✨ Imagen optimizada: ${getReadableFileSize(optimizedBlob.size)}`);
+      
+      // Convertir el blob optimizado a File
+      const optimizedFile = new File([optimizedBlob], 'profile-picture.webp', {
+        type: 'image/webp',
       });
 
-      const result = await apiService.users.uploadProfilePicture(user.id, croppedFile);
+      const result = await apiService.users.uploadProfilePicture(user.id, optimizedFile);
       setUserPhoto(result);
       alert('✅ Foto de perfil actualizada correctamente');
 
@@ -271,7 +279,8 @@ export function EditableProfile() {
     );
   }
 
-  const currentCancerColor = cancerColors[patient.cancerType];
+  // Usar el color seleccionado por el paciente, o por defecto el del tipo de cáncer
+  const currentCancerColor = cancerColors[patient.selectedColor || patient.cancerType];
 
   return (
     <div className="mt-8 space-y-6">
@@ -376,7 +385,7 @@ export function EditableProfile() {
 
               <div>
                 <Label className="text-sm text-gray-600">Edad</Label>
-                <p className="font-medium">{patient.age} años</p>
+                <p className="font-medium">{calculateAge(patient.dateOfBirth)} años</p>
               </div>
               <div>
                 <Label className="text-sm text-gray-600">RUT</Label>
@@ -679,7 +688,7 @@ export function EditableProfile() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
               <Scissors className="w-5 h-5" style={{ color: currentCancerColor.color }} />
-              <span>Historial de Cirugías</span>
+              <span>Intervenciones Quirúrgicas</span>
             </CardTitle>
             {canEdit('operations') && !editingOperations && (
               <Button size="sm" variant="ghost" onClick={startEditingOperations}>
@@ -753,41 +762,62 @@ export function EditableProfile() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Palette className="w-5 h-5" style={{ color: currentCancerColor.color }} />
-            <span>Personalización</span>
+            <span>Personalización de Color</span>
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Color de la aplicación basado en tu tipo de cáncer
+            Elige el color que más te represente para personalizar tu experiencia
           </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-            {Object.entries(cancerColors).map(([type, config]) => (
-              <div
-                key={type}
-                className={`flex flex-col items-center p-3 rounded-lg border-2 ${
-                  patient.cancerType === type 
-                    ? 'border-gray-900 bg-gray-50' 
-                    : 'border-gray-200'
-                }`}
-              >
-                <div
-                  className="w-8 h-8 rounded-full mb-2 shadow-sm"
-                  style={{ backgroundColor: config.color }}
-                />
-                <span className="text-xs text-center leading-tight">
-                  {config.name}
-                </span>
-                {patient.cancerType === type && (
-                  <div className="mt-1">
-                    <div className="w-2 h-2 bg-gray-900 rounded-full" />
-                  </div>
-                )}
-              </div>
-            ))}
+            {Object.entries(cancerColors).map(([type, config]) => {
+              const isSelected = (patient.selectedColor || patient.cancerType) === type;
+              const isOriginalType = patient.cancerType === type;
+              
+              return (
+                <button
+                  key={type}
+                  onClick={async () => {
+                    if (await saveField('selectedColor', type as CancerType)) {
+                      // El color se guardó exitosamente
+                    }
+                  }}
+                  disabled={saving}
+                  className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all hover:border-gray-400 ${
+                    isSelected 
+                      ? 'border-gray-900 bg-gray-50 shadow-md' 
+                      : 'border-gray-200'
+                  } ${saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full mb-2 shadow-sm"
+                    style={{ backgroundColor: config.color }}
+                  />
+                  <span className="text-xs text-center leading-tight">
+                    {config.name}
+                  </span>
+                  {isOriginalType && (
+                    <span className="text-[10px] text-gray-500 mt-1">
+                      (Tu diagnóstico)
+                    </span>
+                  )}
+                  {isSelected && (
+                    <div className="mt-1">
+                      <div className="w-2 h-2 bg-gray-900 rounded-full" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: currentCancerColor.color + '20' }}>
             <p className="text-sm" style={{ color: currentCancerColor.color }}>
-              <strong>Color actual:</strong> {currentCancerColor.name} - 
+              <strong>Color actual:</strong> {currentCancerColor.name}
+              {patient.selectedColor && patient.selectedColor !== patient.cancerType && (
+                <span className="ml-2 text-xs">(Personalizado)</span>
+              )}
+            </p>
+            <p className="text-xs mt-2 text-gray-600">
               Este color se aplica a los elementos destacados de tu aplicación.
             </p>
           </div>

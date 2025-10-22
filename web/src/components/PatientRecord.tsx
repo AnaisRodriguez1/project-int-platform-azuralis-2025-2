@@ -37,6 +37,7 @@ import { ManageCareTeam } from "./ManageCareTeam";
 import { useAuth } from "@/context/AuthContext";
 import { apiService } from "@/services/api";
 import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
+import { calculateAge } from "@/common/helpers/CalculateAge";
 
 interface PatientRecordProps {
   patient: Patient;
@@ -185,7 +186,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                 {patient.name}
               </h1>
               <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                <span>{patient.age} años</span>
+                <span>{calculateAge(patient.dateOfBirth)} años</span>
                 <span>RUT: {patient.rut}</span>
               </div>
               <div className="mt-3 flex items-center space-x-2">

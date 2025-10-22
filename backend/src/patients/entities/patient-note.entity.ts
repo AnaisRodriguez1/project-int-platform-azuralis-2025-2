@@ -8,13 +8,13 @@ export class PatientNote {
   id: string;
 
   // TODO: Descomentar después de ejecutar update-patient-notes-table.sql
-  @Column({ type: 'nvarchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   title: string;
 
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ type: 'datetime2', default: () => 'GETDATE()' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
   @Column()

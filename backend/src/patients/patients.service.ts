@@ -145,22 +145,25 @@ export class PatientsService {
         console.log('🔄 Converted currentMedications to:', processedData.currentMedications);
       }
       
-      // Construir UPDATE SQL manualmente
-      const fields = Object.keys(processedData).filter(key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam');
+      // Filtrar campos que no deben actualizarse directamente
+      const fieldsToUpdate = Object.keys(processedData).filter(
+        key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam'
+      );
       
-      if (fields.length > 0) {
-        const setClause = fields.map((field, idx) => `[${field}] = @${idx}`).join(', ');
-        const values = fields.map(field => processedData[field]);
+      if (fieldsToUpdate.length > 0) {
+        // Usar TypeORM QueryBuilder para PostgreSQL
+        const updateQuery = this.patientRepo
+          .createQueryBuilder()
+          .update(Patient)
+          .set(processedData)
+          .where('id = :id', { id });
         
-        const sql = `UPDATE [patients] SET ${setClause} WHERE [id] = @${fields.length}`;
-        console.log('🔧 SQL:', sql);
-        console.log('🔧 Values:', values);
-        
-        await this.patientRepo.query(sql, [...values, id]);
-        console.log('✅ Raw SQL update successful');
+        console.log('🔧 Executing update with TypeORM QueryBuilder');
+        await updateQuery.execute();
+        console.log('✅ Update successful');
       }
       
-      // Ahora cargar el paciente actualizado para retornarlo
+      // Cargar el paciente actualizado para retornarlo
       const result = await this.findOne(id);
       console.log('✅ Patient reloaded');
       

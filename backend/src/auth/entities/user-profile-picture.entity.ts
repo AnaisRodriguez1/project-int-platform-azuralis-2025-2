@@ -12,7 +12,7 @@ export class UserProfilePicture {
   @Column()
   url: string;
 
-  @Column({ type: 'datetime2', default: () => 'GETDATE()' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   uploadDate: Date;
 
   // Relación con User

@@ -39,6 +39,8 @@ import { CancerRibbon } from "./CancerRibbon";
 import { ManageCareTeam } from "./ManageCareTeam";
 import { useAuth } from "@/context/AuthContext";
 import { apiService } from "@/services/api";
+import { calculateAge } from "@/common/helpers/CalculateAge";
+import { optimizeMedicalDocument, getReadableFileSize } from "@/common/helpers/ImageOptimizer";
 import LogoUniversidad from "../assets/logo_ucn.svg?react";
 
 interface EditablePatientRecordProps {
@@ -480,6 +482,22 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
 
     try {
       setSaving(true);
+      
+      let fileToUpload = selectedFile;
+      
+      // Si es una imagen, optimizarla antes de subir
+      if (selectedFile.type.startsWith('image/')) {
+        console.log(`📸 Documento original: ${getReadableFileSize(selectedFile.size)}`);
+        const optimizedBlob = await optimizeMedicalDocument(selectedFile);
+        console.log(`✨ Documento optimizado: ${getReadableFileSize(optimizedBlob.size)}`);
+        
+        // Convertir a File manteniendo el nombre original pero con extensión .webp
+        const originalName = selectedFile.name.replace(/\.[^.]+$/, '');
+        fileToUpload = new File([optimizedBlob], `${originalName}.webp`, {
+          type: 'image/webp',
+        });
+      }
+      
       const newDoc = await apiService.documents.create({
         patientId: patient.id,
         uploaderId: user.id,
@@ -487,7 +505,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
         type: newDocType as any,
         description: newDocDescription,
         uploadDate: new Date().toISOString(),
-      }, selectedFile); // ✅ Enviar el archivo real
+      }, fileToUpload);
       
       setDocuments([newDoc, ...documents]);
       setNewDocTitle("");
@@ -602,7 +620,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
             <div className="flex-1">
               <h1 className="text-2xl font-semibold text-gray-900">{patient.name}</h1>
               <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                <span>{patient.age} años</span>
+                <span>{calculateAge(patient.dateOfBirth)} años</span>
                 <span>RUT: {patient.rut}</span>
               </div>
               <div className="mt-3 flex items-center space-x-2">

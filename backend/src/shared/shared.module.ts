@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AzureStorageService } from './azure-storage.service';
+import { R2StorageService } from './r2-storage.service';
 
 @Module({
-  providers: [AzureStorageService],
-  exports: [AzureStorageService],
+  providers: [R2StorageService],
+  exports: [R2StorageService],
 })
 export class SharedModule {}

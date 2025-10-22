@@ -23,8 +23,8 @@ export class Patient {
   @Column()
   name: string;
 
-  @Column({ type: 'int' })
-  age: number;
+  @Column({ type: 'date' })
+  dateOfBirth: Date;
 
   @Column({ unique: true })
   rut: string;
@@ -43,6 +43,13 @@ export class Patient {
     length: 50,
   })
   cancerType: CancerType;
+
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  selectedColor?: CancerType; // Color personalizado elegido por el paciente
 
   @Column('text', { nullable: true, default: '[]' })
   allergies: string; // JSON string de string[]
