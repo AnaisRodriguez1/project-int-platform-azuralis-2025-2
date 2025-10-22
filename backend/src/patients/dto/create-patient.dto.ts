@@ -1,14 +1,12 @@
-import { IsString, IsInt, IsEnum, IsArray, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsDateString, IsEnum, IsArray, IsOptional } from 'class-validator';
 import { CancerType } from '../../shared/enums/cancer-type.enum';
 
 export class CreatePatientDto {
   @IsString()
   name: string;
 
-  @IsInt()
-  @Min(0)
-  @Max(150)
-  age: number;
+  @IsDateString()
+  dateOfBirth: string; // Formato: 'YYYY-MM-DD'
 
   @IsString()
   rut: string;
@@ -25,6 +23,10 @@ export class CreatePatientDto {
 
   @IsEnum(CancerType)
   cancerType: CancerType;
+
+  @IsOptional()
+  @IsEnum(CancerType)
+  selectedColor?: CancerType;
 
   @IsOptional()
   @IsArray()

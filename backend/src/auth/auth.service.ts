@@ -88,7 +88,6 @@ export class AuthService {
       }
     }
     
-    // Eliminar scanHistory del objeto (ya lo enviamos como searchHistory)
     delete userData.scanHistory;
 
     // Parsear assignedPatients si existe

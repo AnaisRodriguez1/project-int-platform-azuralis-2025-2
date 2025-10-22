@@ -48,12 +48,13 @@ export interface CareTeamMember {
 export interface Patient {
   id: string;
   name: string;
-  age: number;
+  dateOfBirth: string; // Formato: 'YYYY-MM-DD'
   rut: string;
   photo?: string;
   diagnosis: string;
   stage: string;
   cancerType: CancerType;
+  selectedColor?: CancerType; // Color personalizado elegido por el paciente
   allergies: string[];
   currentMedications: string[];
   emergencyContacts: EmergencyContact[];
@@ -154,6 +155,7 @@ export interface SearchRecord {
   patientId: string;
   patientRut: string;
   patientName?: string; // Nombre del paciente (se carga dinámicamente)
+  patientPhoto?: any; // Foto de perfil del paciente (se carga dinámicamente)
   searchedAt: Date;
 }
 

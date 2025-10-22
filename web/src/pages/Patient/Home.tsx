@@ -65,8 +65,10 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
     }
   };
 
-  // Obtener color del tipo de cáncer
-  const cancerColor = patient ? cancerColors[patient.cancerType] : cancerColors.other;
+  // Obtener color del tipo de cáncer (usar selectedColor si existe)
+  const cancerColor = patient 
+    ? cancerColors[patient.selectedColor || patient.cancerType] 
+    : cancerColors.other;
 
   const shareQRCode = async () => {
     if (!patient) return;

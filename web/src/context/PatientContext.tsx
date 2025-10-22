@@ -5,6 +5,7 @@ import type { CancerType } from "@/types/medical";
 interface PatientContextData {
   patientId: string;
   cancerType: CancerType;
+  selectedColor?: CancerType; // Color personalizado elegido por el paciente
   name: string;
   // Agregar más campos según necesidad
 }

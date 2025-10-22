@@ -53,6 +53,9 @@ export class User {
   // 🧑 PACIENTE
   @Column({ nullable: true })
   patientId?: string; // vínculo directo con tabla patients
+
+  @Column({nullable: true})
+  photo?: string;
 }
 
 

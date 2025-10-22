@@ -6,12 +6,17 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { UserProfileController } from './user-profile.controller';
+import { UserProfileService } from './user-profile.service';
 import { User } from './entities/user.entity';
+import { UserProfilePicture } from './entities/user-profile-picture.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, UserProfilePicture]),
+    SharedModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'tu-clave-secreta-super-segura',
@@ -19,7 +24,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
     }),
   ],
-  controllers: [AuthController, UsersController],
-  providers: [AuthService, UsersService, JwtStrategy],
+  controllers: [AuthController, UsersController, UserProfileController],
+  providers: [AuthService, UsersService, UserProfileService, JwtStrategy],
 })
 export class AuthModule {}

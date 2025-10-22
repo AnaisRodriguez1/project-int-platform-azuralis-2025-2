@@ -39,7 +39,9 @@ import { CancerRibbon } from "./CancerRibbon";
 import { ManageCareTeam } from "./ManageCareTeam";
 import { useAuth } from "@/context/AuthContext";
 import { apiService } from "@/services/api";
-import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
+import { calculateAge } from "@/common/helpers/CalculateAge";
+import { optimizeMedicalDocument, getReadableFileSize } from "@/common/helpers/ImageOptimizer";
+import LogoUniversidad from "../assets/logo_ucn.svg?react";
 
 interface EditablePatientRecordProps {
   patient: Patient;
@@ -70,9 +72,11 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
   
   const [notes, setNotes] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [displayDocuments, setDisplayDocuments] = useState<any[]>([]); // Documentos ordenados para mostrar
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [patientPhoto, setPatientPhoto] = useState<any>(null);
 
   // Estados para crear/editar notas
   const [creatingNote, setCreatingNote] = useState(false);
@@ -128,6 +132,35 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
     };
 
     loadDocuments();
+  }, [patient.id]);
+
+  // Ordenar documentos - destacar el del Comité Oncológico
+  useEffect(() => {
+    // Separar el documento del Comité Oncológico
+    const comiteDoc = documents.find(doc => 
+      doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico')
+    );
+    const otherDocs = documents.filter(doc => 
+      !(doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico'))
+    );
+    
+    // Poner el documento del Comité Oncológico al principio si existe
+    setDisplayDocuments(comiteDoc ? [comiteDoc, ...otherDocs] : otherDocs);
+  }, [documents]);
+
+  // Load patient profile picture
+  useEffect(() => {
+    const loadPatientPhoto = async () => {
+      try {
+        // For now, patients don't have separate profile pictures
+        // This could be extended in the future with a patient-specific endpoint
+        setPatientPhoto(null);
+      } catch (error) {
+        console.log('No patient profile picture found');
+        setPatientPhoto(null);
+      }
+    };
+    loadPatientPhoto();
   }, [patient.id]);
 
   const formatDate = (dateString: string) => {
@@ -464,6 +497,22 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
 
     try {
       setSaving(true);
+      
+      let fileToUpload = selectedFile;
+      
+      // Si es una imagen, optimizarla antes de subir
+      if (selectedFile.type.startsWith('image/')) {
+        console.log(`📸 Documento original: ${getReadableFileSize(selectedFile.size)}`);
+        const optimizedBlob = await optimizeMedicalDocument(selectedFile);
+        console.log(`✨ Documento optimizado: ${getReadableFileSize(optimizedBlob.size)}`);
+        
+        // Convertir a File manteniendo el nombre original pero con extensión .webp
+        const originalName = selectedFile.name.replace(/\.[^.]+$/, '');
+        fileToUpload = new File([optimizedBlob], `${originalName}.webp`, {
+          type: 'image/webp',
+        });
+      }
+      
       const newDoc = await apiService.documents.create({
         patientId: patient.id,
         uploaderId: user.id,
@@ -471,7 +520,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
         type: newDocType as any,
         description: newDocDescription,
         uploadDate: new Date().toISOString(),
-      }, selectedFile); // ✅ Enviar el archivo real
+      }, fileToUpload);
       
       setDocuments([newDoc, ...documents]);
       setNewDocTitle("");
@@ -528,27 +577,14 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
     }
   };
 
-  const handleOpenDocument = async (docId: string) => {
+  // Función para abrir/descargar el documento con URL firmada
+  const downloadDocument = async (docId: string) => {
     try {
-      console.log('📄 Solicitando URL para documento:', docId);
-      // Obtener URL temporal con SAS token
       const { url } = await apiService.documents.getDownloadUrl(docId);
-      console.log('✅ URL con SAS token obtenida:', url);
-      
-      // Intentar abrir en nueva pestaña
-      const newWindow = window.open(url, "_blank");
-      
-      // Verificar si el navegador bloqueó el pop-up
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        console.warn('⚠️ Pop-up bloqueado. Abriendo en el mismo tab...');
-        // Alternativa: Abrir en el mismo tab
-        window.location.href = url;
-      } else {
-        console.log('✅ Documento abierto en nueva pestaña');
-      }
+      window.open(url, '_blank');
     } catch (error) {
-      console.error('❌ Error al abrir documento:', error);
-      alert("❌ Error al abrir el documento. Por favor intenta de nuevo.");
+      console.error('Error al abrir documento:', error);
+      alert('❌ Error al abrir el documento. Por favor intenta de nuevo.');
     }
   };
 
@@ -575,7 +611,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
           {/* Patient Header */}
           <div className="flex items-start space-x-4">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={patient.photo} alt={patient.name} />
+              <AvatarImage src={patientPhoto?.url} alt={patient.name} />
               <AvatarFallback
                 className="text-lg"
                 style={{ backgroundColor: cancerColor.color + "40" }}
@@ -586,7 +622,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
             <div className="flex-1">
               <h1 className="text-2xl font-semibold text-gray-900">{patient.name}</h1>
               <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                <span>{patient.age} años</span>
+                <span>{calculateAge(patient.dateOfBirth)} años</span>
                 <span>RUT: {patient.rut}</span>
               </div>
               <div className="mt-3 flex items-center space-x-2">
@@ -847,7 +883,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center space-x-2">
                         <Scissors className="w-5 h-5" style={{ color: cancerColor.color }} />
-                        <span>Operaciones Relevantes</span>
+                        <span>Intervenciones Quirúrgicas</span>
                       </CardTitle>
                       {canEdit('operations') && !editingOperations && (
                         <Button size="sm" variant="ghost" onClick={startEditingOperations}>
@@ -911,7 +947,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">Sin operaciones registradas</p>
+                      <p className="text-sm text-gray-500">Sin Intervenciones Quirúrgicas registradas</p>
                     )}
                   </CardContent>
                 </Card>
@@ -1217,41 +1253,86 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                {documents.map((doc) => (
-                  <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base">{doc.title}</CardTitle>
-                          <p className="text-xs text-gray-500 mt-1">{formatDate(doc.uploadDate)}</p>
-                          {doc.description && (
-                            <p className="text-xs text-gray-600 mt-2">{doc.description}</p>
+              <div className="space-y-6">
+                {/* Documento del Comité Oncológico destacado */}
+                {displayDocuments.length > 0 && 
+                 displayDocuments[0].title.toLowerCase().includes('comité') && 
+                 displayDocuments[0].title.toLowerCase().includes('oncológico') && (
+                  <Card className="bg-purple-600 border-purple-700 shadow-lg overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0 text-white">
+                          <h3 className="font-bold text-xl mb-2">{displayDocuments[0].title}</h3>
+                          <div className="flex items-center space-x-2 text-purple-100">
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-sm">{formatDate(displayDocuments[0].uploadDate)}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col space-y-2 ml-4">
+                          <Button
+                            variant="secondary"
+                            onClick={() => downloadDocument(displayDocuments[0].id)}
+                            className="bg-white text-purple-600 hover:bg-purple-50"
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Abrir Documento
+                          </Button>
+                          {canDeleteDocument(displayDocuments[0]) && (
+                            <Button
+                              variant="outline"
+                              className="bg-white text-red-600 hover:bg-red-50 border-red-200"
+                              onClick={() => deleteDocument(displayDocuments[0].id)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Eliminar
+                            </Button>
                           )}
                         </div>
-                        <Badge style={{ backgroundColor: getDocumentBadgeColor(doc.type) }} className="text-white">
-                          {doc.type}
-                        </Badge>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <Button variant="outline" className="w-full" onClick={() => handleOpenDocument(doc.id)}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Ver Documento
-                      </Button>
-                      {canDeleteDocument(doc) && (
-                        <Button
-                          variant="outline"
-                          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                          onClick={() => deleteDocument(doc.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Eliminar Documento
-                        </Button>
-                      )}
                     </CardContent>
                   </Card>
-                ))}
+                )}
+
+                {/* Resto de documentos en grid */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {displayDocuments.slice(
+                    displayDocuments[0]?.title.toLowerCase().includes('comité') && 
+                    displayDocuments[0]?.title.toLowerCase().includes('oncológico') ? 1 : 0
+                  ).map((doc) => (
+                    <Card key={doc.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-base">{doc.title}</CardTitle>
+                            <p className="text-xs text-gray-500 mt-1">{formatDate(doc.uploadDate)}</p>
+                            {doc.description && (
+                              <p className="text-xs text-gray-600 mt-2">{doc.description}</p>
+                            )}
+                          </div>
+                          <Badge style={{ backgroundColor: getDocumentBadgeColor(doc.type) }} className="text-white">
+                            {doc.type}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <Button variant="outline" className="w-full" onClick={() => downloadDocument(doc.id)}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Abrir
+                        </Button>
+                        {canDeleteDocument(doc) && (
+                          <Button
+                            variant="outline"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            onClick={() => deleteDocument(doc.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Eliminar
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
           </TabsContent>

@@ -37,6 +37,7 @@ import { ManageCareTeam } from "./ManageCareTeam";
 import { useAuth } from "@/context/AuthContext";
 import { apiService } from "@/services/api";
 import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
+import { calculateAge } from "@/common/helpers/CalculateAge";
 
 interface PatientRecordProps {
   patient: Patient;
@@ -50,6 +51,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
   
   const [notes, setNotes] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
+  const [displayDocuments, setDisplayDocuments] = useState<any[]>([]); // Documentos ordenados para mostrar
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
 
@@ -89,6 +91,20 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
     loadDocuments();
   }, [patient.id]);
 
+  // Ordenar documentos - destacar el del Comité Oncológico
+  useEffect(() => {
+    // Separar el documento del Comité Oncológico
+    const comiteDoc = documents.find(doc => 
+      doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico')
+    );
+    const otherDocs = documents.filter(doc => 
+      !(doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico'))
+    );
+    
+    // Poner el documento del Comité Oncológico al principio si existe
+    setDisplayDocuments(comiteDoc ? [comiteDoc, ...otherDocs] : otherDocs);
+  }, [documents]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-CL", {
       year: "numeric",
@@ -120,27 +136,14 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
     return roleNames[role] || role;
   };
 
-  const handleOpenDocument = async (docId: string) => {
+  // Función para abrir/descargar el documento con URL firmada
+  const downloadDocument = async (docId: string) => {
     try {
-      console.log('📄 Solicitando URL para documento:', docId);
-      // Obtener URL temporal con SAS token
       const { url } = await apiService.documents.getDownloadUrl(docId);
-      console.log('✅ URL con SAS token obtenida:', url);
-      
-      // Intentar abrir en nueva pestaña
-      const newWindow = window.open(url, "_blank");
-      
-      // Verificar si el navegador bloqueó el pop-up
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        console.warn('⚠️ Pop-up bloqueado. Abriendo en el mismo tab...');
-        // Alternativa: Abrir en el mismo tab
-        window.location.href = url;
-      } else {
-        console.log('✅ Documento abierto en nueva pestaña');
-      }
+      window.open(url, '_blank');
     } catch (error) {
-      console.error('❌ Error al abrir documento:', error);
-      alert("❌ Error al abrir el documento. Por favor intenta de nuevo.");
+      console.error('Error al abrir documento:', error);
+      alert('❌ Error al abrir el documento. Por favor intenta de nuevo.');
     }
   };
 
@@ -185,7 +188,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                 {patient.name}
               </h1>
               <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                <span>{patient.age} años</span>
+                <span>{calculateAge(patient.dateOfBirth)} años</span>
                 <span>RUT: {patient.rut}</span>
               </div>
               <div className="mt-3 flex items-center space-x-2">
@@ -322,7 +325,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                         className="w-5 h-5"
                         style={{ color: cancerColor.color }}
                       />
-                      <span>Operaciones Relevantes</span>
+                      <span>Intervenciones Quirúrgicas</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -441,12 +444,44 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                {documents.map((doc) => (
-                  <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+              <div className="space-y-6">
+                {/* Documento del Comité Oncológico destacado */}
+                {displayDocuments.length > 0 && 
+                 displayDocuments[0].title.toLowerCase().includes('comité') && 
+                 displayDocuments[0].title.toLowerCase().includes('oncológico') && (
+                  <Card className="bg-purple-600 border-purple-700 shadow-lg overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0 text-white">
+                          <h3 className="font-bold text-xl mb-2">{displayDocuments[0].title}</h3>
+                          <div className="flex items-center space-x-2 text-purple-100">
+                            <Calendar className="w-4 h-4" />
+                            <span className="text-sm">{formatDate(displayDocuments[0].uploadDate)}</span>
+                          </div>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          onClick={() => downloadDocument(displayDocuments[0].id)}
+                          className="bg-white text-purple-600 hover:bg-purple-50 ml-4"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Abrir Documento
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Resto de documentos en grid */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {displayDocuments.slice(
+                    displayDocuments[0]?.title.toLowerCase().includes('comité') && 
+                    displayDocuments[0]?.title.toLowerCase().includes('oncológico') ? 1 : 0
+                  ).map((doc) => (
+                    <Card key={doc.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
                           <CardTitle className="text-base">
                             {doc.title}
                           </CardTitle>
@@ -468,14 +503,15 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => handleOpenDocument(doc.id)}
+                        onClick={() => downloadDocument(doc.id)}
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        Ver Documento
+                        Abrir
                       </Button>
                     </CardContent>
                   </Card>
                 ))}
+              </div>
               </div>
             )}
           </TabsContent>

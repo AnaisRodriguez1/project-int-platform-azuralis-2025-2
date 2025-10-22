@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientData } from '@/hooks/usePatientData';
 import { apiService } from '@/services/api';
 import { cancerColors, PATIENT_PERMISSIONS } from '@/types/medical';
-import type { Patient, EmergencyContact, Operation } from '@/types/medical';
+import type { Patient, EmergencyContact, Operation, CancerType } from '@/types/medical';
+import { calculateAge } from '@/common/helpers/CalculateAge';
+import { optimizeProfilePicture, getReadableFileSize } from '@/common/helpers/ImageOptimizer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
+import { ImageCropDialog } from '@/components/ui/image-crop-dialog';
 import { 
   User, 
   Palette, 
@@ -31,11 +34,14 @@ export function EditableProfile() {
   const { user, logout } = useAuth();
   const { patientId } = usePatientData();
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [userPhoto, setUserPhoto] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de edición
-  const [editingPhoto, setEditingPhoto] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [editingMeds, setEditingMeds] = useState(false);
   const [editingAllergies, setEditingAllergies] = useState(false);
@@ -44,7 +50,6 @@ export function EditableProfile() {
   const [editingTreatment, setEditingTreatment] = useState(false);
   
   // Estados temporales
-  const [tempPhoto, setTempPhoto] = useState('');
   const [tempName, setTempName] = useState('');
   const [tempMeds, setTempMeds] = useState<string[]>([]);
   const [tempAllergies, setTempAllergies] = useState<string[]>([]);
@@ -54,21 +59,31 @@ export function EditableProfile() {
 
   // Cargar datos del paciente
   useEffect(() => {
-    const loadPatient = async () => {
+    const loadData = async () => {
       if (patientId) {
         try {
           setLoading(true);
-          const data = await apiService.patients.getOne(patientId);
-          setPatient(data);
+          const patientData = await apiService.patients.getOne(patientId);
+          setPatient(patientData);
+          
+          // Cargar foto de perfil del usuario
+          if (user?.id) {
+            try {
+              const photoData = await apiService.users.getProfilePicture(user.id);
+              setUserPhoto(photoData);
+            } catch (error) {
+              console.log('No profile picture found');
+            }
+          }
         } catch (error) {
-          console.error('Error loading patient:', error);
+          console.error('Error loading data:', error);
         } finally {
           setLoading(false);
         }
       }
     };
-    loadPatient();
-  }, [patientId]);
+    loadData();
+  }, [patientId, user?.id]);
 
   // Función para verificar si puede editar un campo
   const canEdit = (field: keyof Patient): boolean => {
@@ -93,19 +108,6 @@ export function EditableProfile() {
       return false;
     } finally {
       setSaving(false);
-    }
-  };
-
-  // ==== FOTO ====
-  const startEditingPhoto = () => {
-    if (!patient) return;
-    setTempPhoto(patient.photo || '');
-    setEditingPhoto(true);
-  };
-
-  const savePhoto = async () => {
-    if (await saveField('photo', tempPhoto)) {
-      setEditingPhoto(false);
     }
   };
 
@@ -220,8 +222,36 @@ export function EditableProfile() {
   };
 
   const handleLogout = () => {
-    if (confirm('¿Estás seguro de cerrar sesión?')) {
-      logout();
+    logout();
+  };
+
+  const handleCropComplete = async (croppedImageBlob: Blob) => {
+    if (!user) return;
+
+    try {
+      setSaving(true);
+      
+      // Optimizar la imagen antes de subirla (compresión + WebP)
+      console.log(`📸 Imagen original: ${getReadableFileSize(croppedImageBlob.size)}`);
+      const optimizedBlob = await optimizeProfilePicture(croppedImageBlob);
+      console.log(`✨ Imagen optimizada: ${getReadableFileSize(optimizedBlob.size)}`);
+      
+      // Convertir el blob optimizado a File
+      const optimizedFile = new File([optimizedBlob], 'profile-picture.webp', {
+        type: 'image/webp',
+      });
+
+      const result = await apiService.users.uploadProfilePicture(user.id, optimizedFile);
+      setUserPhoto(result);
+      alert('✅ Foto de perfil actualizada correctamente');
+
+      // Limpiar el estado
+      setSelectedImageSrc(null);
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      alert('❌ Error al subir la foto. Intenta nuevamente.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -249,7 +279,8 @@ export function EditableProfile() {
     );
   }
 
-  const currentCancerColor = cancerColors[patient.cancerType];
+  // Usar el color seleccionado por el paciente, o por defecto el del tipo de cáncer
+  const currentCancerColor = cancerColors[patient.selectedColor || patient.cancerType];
 
   return (
     <div className="mt-8 space-y-6">
@@ -271,43 +302,53 @@ export function EditableProfile() {
             {/* Avatar */}
             <div className="space-y-2">
               <Avatar className="w-20 h-20">
-                <AvatarImage src={patient.photo} alt={patient.name} />
+                <AvatarImage src={userPhoto?.url} alt={patient?.name} />
                 <AvatarFallback className="text-lg" style={{ backgroundColor: currentCancerColor.color + '40' }}>
-                  {patient.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  {patient?.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              {canEdit('photo') && !editingPhoto && (
-                <Button size="sm" variant="outline" onClick={startEditingPhoto} className="w-full">
+              <div className="text-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    console.log('Button clicked, triggering file input');
+                    fileInputRef.current?.click();
+                  }}
+                >
                   <Edit3 className="w-3 h-3 mr-1" />
-                  Editar
+                  Cambiar Foto
                 </Button>
-              )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    console.log('handlePhotoUpload called', e.target.files);
+                    const file = e.target.files?.[0];
+                    if (!file) {
+                      console.log('No file selected');
+                      return;
+                    }
+
+                    console.log('File selected:', file.name, file.size);
+
+                    // Limpiar el input ANTES de procesar para evitar problemas
+                    e.target.value = '';
+
+                    // Crear URL para mostrar en el diálogo de recorte
+                    const imageUrl = URL.createObjectURL(file);
+                    console.log('Image URL created:', imageUrl);
+                    setSelectedImageSrc(imageUrl);
+                    setCropDialogOpen(true);
+                  }}
+                />
+              </div>
             </div>
 
             {/* Info */}
             <div className="flex-1 space-y-4">
-              {/* Editar foto */}
-              {editingPhoto && (
-                <div className="space-y-2 p-3 border rounded-lg bg-gray-50">
-                  <Label htmlFor="photo">URL de la foto</Label>
-                  <Input
-                    id="photo"
-                    value={tempPhoto}
-                    onChange={(e) => setTempPhoto(e.target.value)}
-                    placeholder="https://..."
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={savePhoto} disabled={saving}>
-                      <Save className="w-3 h-3 mr-1" />
-                      Guardar
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingPhoto(false)}>
-                      <X className="w-3 h-3 mr-1" />
-                      Cancelar
-                    </Button>
-                  </div>
-                </div>
-              )}
 
               {/* Nombre */}
               <div>
@@ -344,7 +385,7 @@ export function EditableProfile() {
 
               <div>
                 <Label className="text-sm text-gray-600">Edad</Label>
-                <p className="font-medium">{patient.age} años</p>
+                <p className="font-medium">{calculateAge(patient.dateOfBirth)} años</p>
               </div>
               <div>
                 <Label className="text-sm text-gray-600">RUT</Label>
@@ -380,9 +421,9 @@ export function EditableProfile() {
             <div className="flex items-center space-x-2 mt-1">
               <div
                 className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: currentCancerColor.color }}
+                style={{ backgroundColor: cancerColors[patient.cancerType].color }}
               />
-              <span className="font-medium">{currentCancerColor.name}</span>
+              <span className="font-medium">{cancerColors[patient.cancerType].name}</span>
             </div>
           </div>
           <div>
@@ -647,7 +688,7 @@ export function EditableProfile() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2">
               <Scissors className="w-5 h-5" style={{ color: currentCancerColor.color }} />
-              <span>Historial de Cirugías</span>
+              <span>Intervenciones Quirúrgicas</span>
             </CardTitle>
             {canEdit('operations') && !editingOperations && (
               <Button size="sm" variant="ghost" onClick={startEditingOperations}>
@@ -711,7 +752,7 @@ export function EditableProfile() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Sin operaciones registradas</p>
+            <p className="text-sm text-gray-500">Sin Intervenciones Quirúrgicas registradas</p>
           )}
         </CardContent>
       </Card>
@@ -721,41 +762,62 @@ export function EditableProfile() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Palette className="w-5 h-5" style={{ color: currentCancerColor.color }} />
-            <span>Personalización</span>
+            <span>Personalización de Color</span>
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Color de la aplicación basado en tu tipo de cáncer
+            Elige el color que más te represente para personalizar tu experiencia
           </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-            {Object.entries(cancerColors).map(([type, config]) => (
-              <div
-                key={type}
-                className={`flex flex-col items-center p-3 rounded-lg border-2 ${
-                  patient.cancerType === type 
-                    ? 'border-gray-900 bg-gray-50' 
-                    : 'border-gray-200'
-                }`}
-              >
-                <div
-                  className="w-8 h-8 rounded-full mb-2 shadow-sm"
-                  style={{ backgroundColor: config.color }}
-                />
-                <span className="text-xs text-center leading-tight">
-                  {config.name}
-                </span>
-                {patient.cancerType === type && (
-                  <div className="mt-1">
-                    <div className="w-2 h-2 bg-gray-900 rounded-full" />
-                  </div>
-                )}
-              </div>
-            ))}
+            {Object.entries(cancerColors).map(([type, config]) => {
+              const isSelected = (patient.selectedColor || patient.cancerType) === type;
+              const isOriginalType = patient.cancerType === type;
+              
+              return (
+                <button
+                  key={type}
+                  onClick={async () => {
+                    if (await saveField('selectedColor', type as CancerType)) {
+                      // El color se guardó exitosamente
+                    }
+                  }}
+                  disabled={saving}
+                  className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all hover:border-gray-400 ${
+                    isSelected 
+                      ? 'border-gray-900 bg-gray-50 shadow-md' 
+                      : 'border-gray-200'
+                  } ${saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full mb-2 shadow-sm"
+                    style={{ backgroundColor: config.color }}
+                  />
+                  <span className="text-xs text-center leading-tight">
+                    {config.name}
+                  </span>
+                  {isOriginalType && (
+                    <span className="text-[10px] text-gray-500 mt-1">
+                      (Tu diagnóstico)
+                    </span>
+                  )}
+                  {isSelected && (
+                    <div className="mt-1">
+                      <div className="w-2 h-2 bg-gray-900 rounded-full" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: currentCancerColor.color + '20' }}>
             <p className="text-sm" style={{ color: currentCancerColor.color }}>
-              <strong>Color actual:</strong> {currentCancerColor.name} - 
+              <strong>Color actual:</strong> {currentCancerColor.name}
+              {patient.selectedColor && patient.selectedColor !== patient.cancerType && (
+                <span className="ml-2 text-xs">(Personalizado)</span>
+              )}
+            </p>
+            <p className="text-xs mt-2 text-gray-600">
               Este color se aplica a los elementos destacados de tu aplicación.
             </p>
           </div>
@@ -794,6 +856,15 @@ export function EditableProfile() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Diálogo de recorte de imagen */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={selectedImageSrc}
+        onCropComplete={handleCropComplete}
+        aspect={1} // Cuadrado
+      />
     </div>
   );
 }

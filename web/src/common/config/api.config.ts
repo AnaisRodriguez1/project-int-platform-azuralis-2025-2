@@ -1,11 +1,3 @@
-/**
- * API Configuration
- * 
- * Configuración centralizada para las URLs de la API.
- * En desarrollo: usa localhost:3000
- * En producción: debes cambiar esta URL a tu servidor de Azure
- */
-
 export const API_CONFIG = {
   // URL base de la API
   BASE_URL: import.meta.env.VITE_API_URL || 

@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PatientDocument } from '../entities/patient-document.entity';
-import { AzureStorageService } from '../../shared/services/azure-storage.service';
+import { R2StorageService } from '../../shared/r2-storage.service';
 
 @Injectable()
 export class PatientDocumentsService {
   constructor(
     @InjectRepository(PatientDocument)
     private docsRepo: Repository<PatientDocument>,
-    private azureStorageService: AzureStorageService,
+    private r2StorageService: R2StorageService,
   ) {}
 
   async create(docData: Partial<PatientDocument>, file: Express.Multer.File) {
@@ -23,18 +23,24 @@ export class PatientDocumentsService {
       docData.uploadDate = new Date().toISOString();
     }
 
-    // Generar nombre único para el archivo en Azure
+    // Generar nombre único para el archivo en R2
     const fileExtension = file.originalname.split('.').pop();
-    const uniqueFileName = `${docData.patientId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+    const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+    const containerName = 'patient-documents';
 
     try {
-      // Subir archivo a Azure Blob Storage
-      console.log('📤 Intentando subir archivo a Azure:', uniqueFileName);
-      const azureUrl = await this.azureStorageService.uploadFile(file, uniqueFileName);
-      console.log('✅ Archivo subido a Azure:', azureUrl);
+      // Subir archivo a Cloudflare R2
+      console.log('📤 Intentando subir archivo a R2:', uniqueFileName);
+      const r2Url = await this.r2StorageService.uploadFile(
+        containerName,
+        `${docData.patientId}/${uniqueFileName}`,
+        file.buffer,
+        file.mimetype,
+      );
+      console.log('✅ Archivo subido a R2:', r2Url);
       
-      // Guardar la URL de Azure en la base de datos
-      docData.url = azureUrl;
+      // Guardar la URL de R2 en la base de datos
+      docData.url = r2Url;
       
       console.log('📄 Creating document with patientId:', docData.patientId);
       const doc = this.docsRepo.create(docData);
@@ -72,15 +78,14 @@ export class PatientDocumentsService {
     const doc = await this.docsRepo.findOne({ where: { id } });
     if (!doc) return { message: 'Documento no encontrado' };
     
-    // Eliminar archivo de Azure Storage si existe
+    // Eliminar archivo de R2 Storage si existe
     if (doc.url) {
-      const fileName = this.azureStorageService.extractFileNameFromUrl(doc.url);
-      if (fileName) {
-        try {
-          await this.azureStorageService.deleteFile(fileName);
-        } catch (error) {
-          console.error('⚠️ Error al eliminar archivo de Azure (continuando):', error);
-        }
+      try {
+        const containerName = 'patient-documents';
+        // Extraer el path desde la URL (todo después del container)
+        await this.r2StorageService.deleteFile(containerName, doc.url);
+      } catch (error) {
+        console.error('⚠️ Error al eliminar archivo de R2 (continuando):', error);
       }
     }
     
@@ -89,7 +94,7 @@ export class PatientDocumentsService {
   }
 
   /**
-   * Genera una URL temporal con SAS token para descargar/ver un documento
+   * Genera una URL temporal firmada para descargar/ver un documento
    * @param id - ID del documento en la base de datos
    * @returns Objeto con la URL temporal (válida por 1 hora)
    */
@@ -107,24 +112,16 @@ export class PatientDocumentsService {
       throw new Error('El documento no tiene una URL asociada');
     }
 
-    // Extraer el nombre del archivo desde la URL
-    const fileName = this.azureStorageService.extractFileNameFromUrl(doc.url);
-    console.log('📁 Nombre de archivo extraído:', fileName);
-    
-    if (!fileName) {
-      throw new Error('No se pudo extraer el nombre del archivo desde la URL');
-    }
-
     try {
-      // Generar URL con SAS token (válida por 60 minutos)
-      const sasUrl = await this.azureStorageService.generateSasUrl(fileName, 60);
+      // Generar URL firmada (válida por 60 minutos)
+      const signedUrl = await this.r2StorageService.generateSignedUrl(doc.url, 60);
       
-      console.log('✅ SAS URL generada exitosamente');
+      console.log('✅ URL firmada generada exitosamente');
       
       return {
         id: doc.id,
-        fileName: doc.title || fileName,
-        url: sasUrl,
+        fileName: doc.title || 'documento',
+        url: signedUrl,
         expiresIn: 60, // minutos
         expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
       };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { CancerRibbon } from "../components/CancerRibbon";
-import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
+import LogoUniversidad from "../assets/logo_ucn.svg?react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
@@ -89,7 +89,7 @@ export function LoginScreen() {
                     {/* LOGOS */}
                     <div className="flex items-center justify-center space-x-3">
                         <CancerRibbon className="text-[#ff6299]" size="lg" />
-                        <LogoUniversidad className="w-8 h-8 " />
+                        <LogoUniversidad className="w-12 h-12 " />
                     </div>
                     {/* SUBTITULO */}
                     <div className="space-y-2">
@@ -115,7 +115,7 @@ export function LoginScreen() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="ejemplo@ucn.cl"
+                                    placeholder="ficha_medica@gmail.com"
                                     value={email}
                                     onChange={(e) => {
                                         setEmail(e.target.value);
@@ -181,34 +181,6 @@ export function LoginScreen() {
                         </form>
                     </CardContent>
                 </Card>
-
-                {/* Usuarios de prueba */}
-                <Alert className="bg-blue-50 border-blue-200">
-                    <AlertDescription>
-                        <p className="font-semibold text-blue-900 mb-2">👥 Usuarios de prueba:</p>
-                        <div className="space-y-1 text-xs text-blue-800">
-                            <div className="flex justify-between">
-                                <span className="font-medium">Doctor:</span>
-                                <span>carlos.mendoza@hospital.cl</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-medium">Enfermera:</span>
-                                <span>ana.perez@hospital.cl</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-medium">Paciente:</span>
-                                <span>sofia.ramirez@email.cl</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="font-medium">Paciente:</span>
-                                <span>pedro.flores@email.cl</span>
-                            </div>
-                        </div>
-                        <p className="mt-2 text-xs text-blue-700 italic">
-                            💡 Contraseña para todos: Doctor123! / Nurse123! / Patient123!
-                        </p>
-                    </AlertDescription>
-                </Alert>
 
                 {/* Footer*/}
                 <div className="text-center text-sm text-gray-500">

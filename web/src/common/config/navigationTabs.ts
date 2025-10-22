@@ -17,12 +17,6 @@ export const clinicalStaffTabs: NavTab[] = [
   { id: 'profile', icon: Settings, label: 'Perfil' }
 ];
 
-// Tabs para Doctor (DEPRECADO - usar clinicalStaffTabs)
-export const doctorTabs: NavTab[] = clinicalStaffTabs;
-
-// Tabs para Enfermera/o (DEPRECADO - usar clinicalStaffTabs)
-export const nurseTabs: NavTab[] = clinicalStaffTabs;
-
 // Tabs para Guardian/Tutor
 export const guardianTabs: NavTab[] = [
   { id: 'home', icon: Home, label: 'Inicio' },
