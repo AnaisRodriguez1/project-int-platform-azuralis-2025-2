@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 // import { Textarea } from '@/components/ui/textarea'; // TODO: Descomentar cuando se habilite description
-import { Plus, Calendar, Trash2, Eye, FolderOpen, Upload, Camera, FileText } from 'lucide-react';
+import { Plus, Calendar, Trash2, FolderOpen, Upload, Camera, FileText } from 'lucide-react';
 
 interface DocumentsPatientProps {
   hideHeader?: boolean; // Prop para ocultar el header cuando se usa en un wrapper
@@ -27,19 +27,8 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocType, setNewDocType] = useState<DocumentType>('examen');
   // const [newDocDescription, setNewDocDescription] = useState(''); // TODO: Descomentar cuando se habilite description
-  const [selectedDocument, setSelectedDocument] = useState<PatientDocument | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  // Validar si una URL es válida y accesible
-  const isValidImageUrl = (url: string | undefined): boolean => {
-    if (!url) return false;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
-    // Evitar URLs de Azure Blob Storage que no están configuradas
-    if (url.includes('azuralis-docs.blob.core.windows.net')) return false;
-    return true;
-  };
 
   useEffect(() => {
     loadDocuments();
@@ -61,11 +50,20 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   };
 
   const filterDocuments = () => {
-    if (selectedFilter === 'todos') {
-      setFilteredDocuments(documents);
-    } else {
-      setFilteredDocuments(documents.filter(doc => doc.type === selectedFilter));
-    }
+    let filtered = selectedFilter === 'todos' 
+      ? documents 
+      : documents.filter(doc => doc.type === selectedFilter);
+    
+    // Separar el documento del Comité Oncológico
+    const comiteDoc = filtered.find(doc => 
+      doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico')
+    );
+    const otherDocs = filtered.filter(doc => 
+      !(doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico'))
+    );
+    
+    // Poner el documento del Comité Oncológico al principio si existe
+    setFilteredDocuments(comiteDoc ? [comiteDoc, ...otherDocs] : otherDocs);
   };
 
   const getDocumentCountByType = (type: DocumentType | 'todos'): number => {
@@ -196,6 +194,17 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
     }
     
     return false;
+  };
+
+  // Función para abrir/descargar el documento con URL firmada
+  const downloadDocument = async (docId: string) => {
+    try {
+      const { url } = await apiService.documents.getDownloadUrl(docId);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Error al abrir documento:', error);
+      alert('❌ Error al abrir el documento. Por favor intenta de nuevo.');
+    }
   };
 
   if (!patientId) {
@@ -350,27 +359,47 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
           </CardContent>
         </Card>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDocuments.map((document) => {
-            return (
-              <Card key={document.id} className="hover:shadow-md transition-shadow overflow-hidden">
-                <div className="aspect-video bg-gray-100 relative overflow-hidden flex items-center justify-center">
-                  {!imageErrors.has(document.id) && isValidImageUrl(document.url) ? (
-                    <img
-                      src={document.url}
-                      alt={document.title}
-                      className="w-full h-full object-cover"
-                      onError={() => {
-                        // Marcar esta imagen como fallida
-                        setImageErrors(prev => new Set(prev).add(document.id));
-                      }}
-                    />
-                  ) : (
+        <div className="space-y-6">
+          {/* Documento del Comité Oncológico destacado */}
+          {filteredDocuments.length > 0 && 
+           filteredDocuments[0].title.toLowerCase().includes('comité') && 
+           filteredDocuments[0].title.toLowerCase().includes('oncológico') && (
+            <Card className="bg-purple-600 border-purple-700 shadow-lg overflow-hidden">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0 text-white">
+                    <h3 className="font-bold text-xl mb-2">{filteredDocuments[0].title}</h3>
+                    <div className="flex items-center space-x-2 text-purple-100">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-sm">{formatDate(filteredDocuments[0].uploadDate)}</span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => downloadDocument(filteredDocuments[0].id)}
+                    className="bg-white text-purple-600 hover:bg-purple-50 ml-4"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Abrir Documento
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Resto de documentos en grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredDocuments.slice(
+              filteredDocuments[0]?.title.toLowerCase().includes('comité') && 
+              filteredDocuments[0]?.title.toLowerCase().includes('oncológico') ? 1 : 0
+            ).map((document) => {
+              return (
+                <Card key={document.id} className="hover:shadow-md transition-shadow overflow-hidden">
+                  <div className="aspect-video bg-gray-100 relative overflow-hidden flex items-center justify-center">
                     <div className="flex flex-col items-center justify-center text-gray-400">
                       <FileText className="w-12 h-12" />
                       <span className="text-xs mt-2">Documento</span>
                     </div>
-                  )}
                   <div className="absolute top-2 left-2">
                     <Badge className={getDocumentTypeColor(document.type)}>
                       {getDocumentTypeLabel(document.type)}
@@ -404,19 +433,20 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
                       </div>
                     </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => setSelectedDocument(document)}
-                      className="text-gray-500 hover:text-gray-700 ml-2"
-                      title="Ver documento"
+                      onClick={() => downloadDocument(document.id)}
+                      className="ml-2"
                     >
-                      <Eye className="w-4 h-4" />
+                      <FileText className="w-4 h-4 mr-1" />
+                      Abrir
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
+        </div>
         </div>
       )}
 
@@ -557,61 +587,6 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* View Document Dialog */}
-      {selectedDocument && (
-        <Dialog open={!!selectedDocument} onOpenChange={() => setSelectedDocument(null)}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>{selectedDocument.title}</DialogTitle>
-            </DialogHeader>
-            <div className="pt-4 space-y-4">
-              {isValidImageUrl(selectedDocument.url) ? (
-                <div className="w-full max-h-96 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden">
-                  <img
-                    src={selectedDocument.url}
-                    alt={selectedDocument.title}
-                    className="w-full max-h-96 object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div class="flex flex-col items-center justify-center text-gray-400 p-8">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                              <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                            <span class="text-sm mt-4">No se pudo cargar la vista previa</span>
-                            <span class="text-xs text-gray-500 mt-2">El documento puede no estar disponible</span>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full max-h-96 bg-gray-50 rounded-lg flex flex-col items-center justify-center text-gray-400 p-8">
-                  <FileText className="w-16 h-16 mb-4" />
-                  <span className="text-sm">Vista previa no disponible</span>
-                  <span className="text-xs text-gray-500 mt-2">El documento puede no estar configurado</span>
-                </div>
-              )}
-              {selectedDocument.description && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-700">{selectedDocument.description}</p>
-                </div>
-              )}
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <Badge className={getDocumentTypeColor(selectedDocument.type)}>
-                  {getDocumentTypeLabel(selectedDocument.type)}
-                </Badge>
-                <span>{formatDate(selectedDocument.uploadDate)}</span>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
