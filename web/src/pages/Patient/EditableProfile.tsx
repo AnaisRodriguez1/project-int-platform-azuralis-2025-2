@@ -752,7 +752,7 @@ export function EditableProfile() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Sin operaciones registradas</p>
+            <p className="text-sm text-gray-500">Sin Intervenciones Quirúrgicas registradas</p>
           )}
         </CardContent>
       </Card>

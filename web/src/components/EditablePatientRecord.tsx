@@ -881,7 +881,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center space-x-2">
                         <Scissors className="w-5 h-5" style={{ color: cancerColor.color }} />
-                        <span>Operaciones Relevantes</span>
+                        <span>Intervenciones Quirúrgicas</span>
                       </CardTitle>
                       {canEdit('operations') && !editingOperations && (
                         <Button size="sm" variant="ghost" onClick={startEditingOperations}>
@@ -945,7 +945,7 @@ export function EditablePatientRecord({ patient: initialPatient, onBack }: Edita
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">Sin operaciones registradas</p>
+                      <p className="text-sm text-gray-500">Sin Intervenciones Quirúrgicas registradas</p>
                     )}
                   </CardContent>
                 </Card>

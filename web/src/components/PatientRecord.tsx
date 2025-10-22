@@ -323,7 +323,7 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                         className="w-5 h-5"
                         style={{ color: cancerColor.color }}
                       />
-                      <span>Operaciones Relevantes</span>
+                      <span>Intervenciones Quirúrgicas</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
