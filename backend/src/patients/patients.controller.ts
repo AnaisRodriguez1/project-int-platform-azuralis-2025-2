@@ -16,6 +16,9 @@ import { CreatePatientDto } from './dto/create-patient.dto';
 import { Patient } from './entities/patient.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+import * as path from 'path';
+import * as fs from 'fs';
+
 @Controller('patients')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
@@ -48,19 +51,16 @@ export class PatientsController {
     return { name };
   }
 
+  // ✅ Nuevo endpoint: devuelve el QR físico (.png)
   @Get(':id/qr')
   async getQRCode(@Param('id') id: string, @Res() res: Response) {
-    const qrCodeImage = await this.patientsService.generateQRCode(id);
-    
-    // Convertir Data URL a Buffer
-    const base64Data = qrCodeImage.replace(/^data:image\/png;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-    
-    // Devolver como imagen PNG
+    const { buffer, path: filePath } = await this.patientsService.getQRCodeImage(id);
+
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Length', imageBuffer.length);
-    res.send(imageBuffer);
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(filePath)}"`);
+    res.send(buffer);
   }
+
 
   @Get(':id/notes')
   async getPatientNotes(@Param('id') id: string) {

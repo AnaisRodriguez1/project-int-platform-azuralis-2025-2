@@ -7,6 +7,9 @@ import { PatientDocument } from './entities/patient-document.entity';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import * as QRCode from 'qrcode';
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 @Injectable()
 export class PatientsService {
   constructor(
@@ -31,16 +34,40 @@ export class PatientsService {
       qrCode: 'PLACEHOLDER', // Placeholder temporal para evitar NULL
     };
 
-    // Crear y guardar el paciente primero
+    // 1️⃣ Guardar paciente para obtener ID
     const newPatient = this.patientRepo.create(processedData);
     const savedPatient = await this.patientRepo.save(newPatient);
-    
-    // Actualizar con el identificador del QR real
-    savedPatient.qrCode = `PATIENT:${savedPatient.id}`;
-    const finalPatient = await this.patientRepo.save(savedPatient);
-    
-    // Devolver con arrays parseados
-    return this.parsePatientData(finalPatient);
+
+    // 2️⃣ Generar QR Code con la URL al frontend
+    const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const qrData = `${frontendBaseUrl}/patient/${savedPatient.id}`;
+
+    // Crear carpeta de destino si no existe
+    const qrDir = path.join(__dirname, '../../uploads/qr');
+    if (!fs.existsSync(qrDir)) {
+      fs.mkdirSync(qrDir, { recursive: true });
+    }
+
+    const qrFileName = `patient-${savedPatient.id}.png`;
+    const qrFilePath = path.join(qrDir, qrFileName);
+
+    // 3️⃣ Generar archivo físico del QR
+    await QRCode.toFile(qrFilePath, qrData, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF',
+      },
+    });
+
+    // 4️⃣ Guardar la ruta del archivo en la BD
+    const relativePath = `/uploads/qr/${qrFileName}`;
+    savedPatient.qrCode = relativePath;
+    await this.patientRepo.save(savedPatient);
+
+    // 5️⃣ Devolver al frontend (sin JSON strings rotos)
+    return this.parsePatientData(savedPatient);
   }
 
 
@@ -50,9 +77,8 @@ export class PatientsService {
       .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
       .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
       .getMany();
-    
-    // Convertir JSON strings a arrays para el frontend
-    return patients.map(patient => this.parsePatientData(patient));
+
+    return patients.map((p) => this.parsePatientData(p));
   }
 
   async findMyCareTeamPatients(userId: string) {
@@ -75,10 +101,25 @@ export class PatientsService {
       .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
       .where('patient.id = :id', { id })
       .getOne();
-      
+
     if (!patient) throw new NotFoundException('Patient not found');
-    // Convertir JSON strings a arrays para el frontend
     return this.parsePatientData(patient);
+  }
+
+// 6️⃣ Endpoint auxiliar para servir el QR
+  async getQRCodeImage(id: string): Promise<{ buffer: Buffer; path: string }> {
+    const patient = await this.findOne(id);
+    if (!patient.qrCode) {
+      throw new NotFoundException('QR no encontrado');
+    }
+
+    const qrPath = path.join(__dirname, '../../', patient.qrCode);
+    if (!fs.existsSync(qrPath)) {
+      throw new NotFoundException('Archivo QR no existe en el servidor');
+    }
+
+    const buffer = fs.readFileSync(qrPath);
+    return { buffer, path: qrPath };
   }
 
   async findByRut(rut: string) {
@@ -110,7 +151,7 @@ export class PatientsService {
       currentMedications: this.parseJsonString(patient.currentMedications),
       careTeam: patient.careTeam || [], // Asegurar que careTeam siempre sea un array
       emergencyContacts: patient.emergencyContacts || [], // Asegurar array
-      operations: [], 
+      operations: [], // TODO: Implementar operations en la BD
     };
   }
 
@@ -145,25 +186,22 @@ export class PatientsService {
         console.log('🔄 Converted currentMedications to:', processedData.currentMedications);
       }
       
-      // Filtrar campos que no deben actualizarse directamente
-      const fieldsToUpdate = Object.keys(processedData).filter(
-        key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam'
-      );
+      // Construir UPDATE SQL manualmente
+      const fields = Object.keys(processedData).filter(key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam');
       
-      if (fieldsToUpdate.length > 0) {
-        // Usar TypeORM QueryBuilder para PostgreSQL
-        const updateQuery = this.patientRepo
-          .createQueryBuilder()
-          .update(Patient)
-          .set(processedData)
-          .where('id = :id', { id });
+      if (fields.length > 0) {
+        const setClause = fields.map((field, idx) => `[${field}] = @${idx}`).join(', ');
+        const values = fields.map(field => processedData[field]);
         
-        console.log('🔧 Executing update with TypeORM QueryBuilder');
-        await updateQuery.execute();
-        console.log('✅ Update successful');
+        const sql = `UPDATE [patients] SET ${setClause} WHERE [id] = @${fields.length}`;
+        console.log('🔧 SQL:', sql);
+        console.log('🔧 Values:', values);
+        
+        await this.patientRepo.query(sql, [...values, id]);
+        console.log('✅ Raw SQL update successful');
       }
       
-      // Cargar el paciente actualizado para retornarlo
+      // Ahora cargar el paciente actualizado para retornarlo
       const result = await this.findOne(id);
       console.log('✅ Patient reloaded');
       
@@ -234,6 +272,11 @@ export class PatientsService {
     
     console.log('✅ findPatientDocuments - Documentos encontrados:', documents.length);
     return documents;
+  }
+
+  async getScanHistory(patientId: string) {
+    // TODO: Implementar sin ScanHistory entity
+    return [];
   }
 
   async getPatientName(patientId: string): Promise<string> {
