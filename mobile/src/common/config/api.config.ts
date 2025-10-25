@@ -1,21 +1,18 @@
 
-import Constants from "expo-constants";
-
-// 🔹 Detectamos el entorno automáticamente
-const ENV = Constants?.manifest?.extra?.env || "development";
-
-// 🔹 Dirección IP del servidor local (ajusta según tu PC)
-const LOCAL_HOST = "http://192.168.1.86:3000"; // ⬅️ cambia por tu IP real de red local
+const ENV = process.env.EXPO_PUBLIC_ENV || "development";
 
 export const API_CONFIG = {
-  // En Expo, no puedes usar "localhost" porque corre en otro dispositivo
   BASE_URL:
     process.env.EXPO_PUBLIC_API_URL ||
-    (ENV === "development" ? LOCAL_HOST : "https://tu-servidor-produccion.com"),
-
+    (ENV === "web"
+      ? "http://localhost:3000"
+      : "http://192.168.1.86:3000"),  // <- cambiar la api
   TIMEOUT: 30000,
   WITH_CREDENTIALS: true,
 };
+
+console.log("🌍 API BASE_URL:", API_CONFIG.BASE_URL);
+console.log("🔧 ENV:", ENV);
 
 // 🔹 Endpoints iguales a los del web (pueden reutilizarse)
 export const API_ENDPOINTS = {

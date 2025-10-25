@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Alert,} from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
-import { Ionicons } from "@expo/vector-icons";
+import { Share2, User, StickyNote, FolderOpen, ClipboardList } from "lucide-react-native"; // 🔹 mismos iconos que en web
 import { useAuth } from "../../context/AuthContext";
 import { apiService } from "../../services/api";
 import { cancerColors, type Patient } from "../../types/medical";
@@ -25,9 +33,11 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
         setLoading(true);
         const patients = await apiService.patients.getAll();
         const foundPatient = patients.find((p) => p.rut === user.rut);
+        
         if (foundPatient) {
           setPatient(foundPatient);
           setQrImageUrl(apiService.patients.getQRCode(foundPatient.id));
+          console.log("QR recibido:", apiService.patients.getQRCode(foundPatient.id));
         }
       } catch (error) {
         console.error("Error al obtener paciente:", error);
@@ -55,8 +65,9 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
     }
   };
 
+  // ✅ Usa selectedColor o cancerType, igual que en web
   const cancerColor = patient
-    ? cancerColors[patient.cancerType]
+    ? cancerColors[patient.selectedColor || patient.cancerType]
     : cancerColors.other;
 
   const shareQRCode = async () => {
@@ -87,11 +98,11 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
 
   return (
     <ScrollView style={styles.container}>
-      {/* QR */}
+      {/* 🟣 QR CODE */}
       <View style={styles.card}>
         <Text style={styles.title}>Mi Código QR Médico</Text>
         <Text style={styles.subtitle}>
-          Muestra este código al personal médico para acceso inmediato
+          Muestra este código al personal médico para acceso inmediato a tu información
         </Text>
 
         <View style={styles.qrContainer}>
@@ -112,19 +123,15 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
           onPress={shareQRCode}
           style={[styles.shareBtn, { backgroundColor: cancerColor.color }]}
         >
-          <Ionicons name="share-social" size={18} color="white" />
+          <Share2 color="white" size={18} style={{ marginRight: 6 }} />
           <Text style={styles.shareText}>Compartir / Guardar</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Ficha resumida */}
+      {/* 🟢 FICHA RESUMIDA */}
       <View style={styles.card}>
         <View style={styles.headerRow}>
-          <Ionicons
-            name="person-circle-outline"
-            size={22}
-            color={cancerColor.color}
-          />
+          <User size={22} color={cancerColor.color} />
           <Text style={styles.headerTitle}>Mi Ficha Resumida</Text>
         </View>
 
@@ -153,13 +160,15 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
               {patient.rut}
             </Text>
             <View style={styles.summaryBox}>
-              <Text style={styles.summaryText}>{patient.treatmentSummary}</Text>
+              <Text style={styles.summaryText}>
+                {patient.treatmentSummary || "Sin resumen disponible."}
+              </Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* Accesos rápidos */}
+      {/* 🟠 ACCESOS RÁPIDOS */}
       {onTabChange && (
         <View style={styles.quickGrid}>
           <TouchableOpacity
@@ -172,11 +181,7 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
                 { backgroundColor: `${cancerColor.color}20` },
               ]}
             >
-              <Ionicons
-                name="document-text"
-                size={24}
-                color={cancerColor.color}
-              />
+              <StickyNote size={22} color={cancerColor.color} />
             </View>
             <Text style={styles.quickTitle}>Mis Notas</Text>
             <Text style={styles.quickSubtitle}>
@@ -194,7 +199,7 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
                 { backgroundColor: `${cancerColor.color}20` },
               ]}
             >
-              <Ionicons name="folder-open" size={24} color={cancerColor.color} />
+              <FolderOpen size={22} color={cancerColor.color} />
             </View>
             <Text style={styles.quickTitle}>Mis Documentos</Text>
             <Text style={styles.quickSubtitle}>
@@ -212,11 +217,7 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
                 { backgroundColor: `${cancerColor.color}20` },
               ]}
             >
-              <Ionicons
-                name="clipboard"
-                size={24}
-                color={cancerColor.color}
-              />
+              <ClipboardList size={22} color={cancerColor.color} />
             </View>
             <Text style={styles.quickTitle}>Mi Ficha Médica</Text>
             <Text style={styles.quickSubtitle}>
@@ -229,6 +230,7 @@ export function HomePatient({ onTabChange }: HomePatientProps) {
   );
 }
 
+// 🧩 Estilos equivalentes al diseño web adaptados a mobile
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB", padding: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -244,7 +246,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   title: { fontSize: 18, fontWeight: "bold", textAlign: "center" },
-  subtitle: { fontSize: 13, color: "#6B7280", textAlign: "center", marginTop: 4 },
+  subtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    textAlign: "center",
+    marginTop: 4,
+  },
   qrContainer: { alignItems: "center", marginVertical: 12 },
   qrImage: { width: 200, height: 200, borderRadius: 10 },
   qrPlaceholder: {
@@ -263,7 +270,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 8,
   },
-  shareText: { color: "white", fontWeight: "600", marginLeft: 6 },
+  shareText: { color: "white", fontWeight: "600" },
   headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
   headerTitle: { fontSize: 16, fontWeight: "600", marginLeft: 6, color: "#111827" },
   profileRow: { flexDirection: "row", alignItems: "flex-start" },
@@ -312,5 +319,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   quickTitle: { fontSize: 13, fontWeight: "600", color: "#111827" },
-  quickSubtitle: { fontSize: 11, color: "#6B7280", textAlign: "center", marginTop: 2 },
+  quickSubtitle: {
+    fontSize: 11,
+    color: "#6B7280",
+    textAlign: "center",
+    marginTop: 2,
+  },
 });
