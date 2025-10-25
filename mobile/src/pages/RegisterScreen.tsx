@@ -1,20 +1,11 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import {View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, StyleSheet, KeyboardAvoidingView, Platform,} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { CancerRibbon } from "../components/CancerRibbon";
-import LogoUCN from "../assets/icons/logo_ucn.svg";
+//import LogoUCN from "../assets/icons/logo_ucn.svg";
+import { Image } from "react-native";
 import {
   validateRegistrationForm,
   formatRUT,
@@ -132,7 +123,10 @@ export function RegisterScreen() {
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <CancerRibbon color="#ff6299" size="lg" />
-            <LogoUCN width={32} height={32} />
+             <Image
+              source={require("../assets/icons/logo_ucn.png")} // convierte el SVG a PNG y usa esta ruta
+              style={{ width: 32, height: 32 }}
+            />
           </View>
           <Text style={styles.title}>Ficha Médica Portátil</Text>
           <Text style={styles.subtitle}>Universidad Católica del Norte</Text>

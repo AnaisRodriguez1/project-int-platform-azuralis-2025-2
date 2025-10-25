@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 const ENV = Constants?.manifest?.extra?.env || "development";
 
 // 🔹 Dirección IP del servidor local (ajusta según tu PC)
-const LOCAL_HOST = "http://192.168.1.88:3000"; // ⬅️ cambia por tu IP real de red local
+const LOCAL_HOST = "http://192.168.1.86:3000"; // ⬅️ cambia por tu IP real de red local
 
 export const API_CONFIG = {
   // En Expo, no puedes usar "localhost" porque corre en otro dispositivo

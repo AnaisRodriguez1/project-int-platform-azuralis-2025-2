@@ -9,24 +9,33 @@ export const api = axios.create({
   withCredentials: API_CONFIG.WITH_CREDENTIALS,
 });
 
-// Interceptor corregido (no async)
+// api.ts
+// Interceptor CORREGIDO (Funcional y compatible con la sintaxis async/await)
+// Usamos 'any' para evitar el conflicto de tipos que Axios ya no exporta.
 api.interceptors.request.use(
-  (config) => {
-    // Retorna config sincrónicamente, pero intentamos obtener token antes
-    AsyncStorage.getItem("token").then((token) => {
+  async (config: any) => { 
+    try {
+      const token = await AsyncStorage.getItem("token");
+      
       if (token) {
-        config.headers = {
-          ...config.headers,
-          Authorization: `Bearer ${token}`,
-        };
+        // Asegura que 'headers' existe
+        if (!config.headers) {
+             config.headers = {};
+        }
+        config.headers.Authorization = `Bearer ${token}`;
       }
-    });
-    return config;
+    } catch (e) {
+      console.error("Error al obtener el token de AsyncStorage:", e);
+    }
+    
+    // ¡Siempre retorna la configuración!
+    return config; 
   },
-  (error) => Promise.reject(error)
+  
+  (error) => {
+    return Promise.reject(error);
+  }
 );
-
-
 // ==================== Tipos de Auth ====================
 
 export interface LoginResponse {
@@ -268,3 +277,4 @@ export const apiService = {
     },
   },
 };
+
