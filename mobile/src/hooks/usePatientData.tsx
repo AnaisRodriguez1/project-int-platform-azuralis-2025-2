@@ -30,52 +30,27 @@ export function usePatientData(): PatientData {
     patientName: "Cargando...",
   });
 
-  useEffect(() => {
-    let isMounted = true; // previene actualizaciones de estado después del desmontaje
+ useEffect(() => {
+  let isMounted = true;
 
-    const loadPatientData = async () => {
-      if (!user) return;
+  const loadPatientData = async () => {
+    if (!user) return;
 
-      try {
-        if (user.role === "patient") {
-          const patientUser = user as PatientUser;
+    try {
+      if (user.role === "patient") {
+        // Buscar paciente por RUT (igual que en la web)
+        const allPatients = await apiService.patients.getAll();
+        const patientFound = allPatients.find((p: any) => p.rut === user.rut);
 
-          // ✅ más eficiente: buscar paciente directamente por ID
-          const patient = await apiService.patients.getOne(patientUser.patientId);
-
-          if (isMounted && patient) {
-            setPatientData({
-              patientId: patient.id,
-              patientName: patient.name,
-              cancerType: patient.cancerType,
-              cancerColor: cancerColors[patient.cancerType] || cancerColors.other,
-            });
-          }
-        } else if (
-          user.role === "guardian" ||
-          user.role === "doctor" ||
-          user.role === "nurse"
-        ) {
-          if (!currentPatient) {
-            setPatientData({
-              patientId: "",
-              patientName: "No seleccionado",
-              cancerType: "other",
-              cancerColor: cancerColors.other,
-            });
-          } else {
-            setPatientData({
-              patientId: currentPatient.patientId,
-              patientName: currentPatient.name,
-              cancerType: currentPatient.cancerType,
-              cancerColor:
-                cancerColors[currentPatient.cancerType] || cancerColors.other,
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error al cargar datos del paciente:", error);
-        if (isMounted) {
+        if (isMounted && patientFound) {
+          const colorKey = patientFound.selectedColor || patientFound.cancerType;
+          setPatientData({
+            patientId: patientFound.id,
+            patientName: patientFound.name,
+            cancerType: patientFound.cancerType,
+            cancerColor: cancerColors[colorKey] || cancerColors.other,
+          });
+        } else {
           setPatientData({
             patientId: "",
             patientName: user.name,
@@ -83,15 +58,49 @@ export function usePatientData(): PatientData {
             cancerColor: cancerColors.other,
           });
         }
+      } else if (
+        user.role === "guardian" ||
+        user.role === "doctor" ||
+        user.role === "nurse"
+      ) {
+        if (!currentPatient) {
+          setPatientData({
+            patientId: "",
+            patientName: "No seleccionado",
+            cancerType: "other",
+            cancerColor: cancerColors.other,
+          });
+        } else {
+          const colorKey = currentPatient.selectedColor || currentPatient.cancerType;
+          setPatientData({
+            patientId: currentPatient.patientId,
+            patientName: currentPatient.name,
+            cancerType: currentPatient.cancerType,
+            cancerColor:
+              cancerColors[colorKey] || cancerColors.other,
+          });
+        }
       }
-    };
+    } catch (error) {
+      console.error("Error al cargar datos del paciente:", error);
+      if (isMounted) {
+        setPatientData({
+          patientId: "",
+          patientName: user.name,
+          cancerType: "other",
+          cancerColor: cancerColors.other,
+        });
+      }
+    }
+  };
 
-    loadPatientData();
+  loadPatientData();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [user, currentPatient]);
+  return () => {
+    isMounted = false;
+  };
+}, [user, currentPatient]);
+
 
   return patientData;
 }

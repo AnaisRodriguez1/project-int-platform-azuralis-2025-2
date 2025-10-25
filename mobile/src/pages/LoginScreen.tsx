@@ -1,16 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from "react-native";
+import {View, Text, TextInput, TouchableOpacity, ActivityIndicator, ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Alert,} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { CancerRibbon } from "../components/CancerRibbon"; // asegúrate de tener versión RN o svg válido
@@ -27,49 +16,78 @@ export function LoginScreen() {
   const [error, setError] = useState("");
 
   const handleLogin = async () => {
-    setError("");
+  setError("");
 
-    if (!email.trim()) {
-      setError("Por favor ingresa tu correo electrónico");
-      return;
-    }
-    if (!password) {
-      setError("Por favor ingresa tu contraseña");
-      return;
-    }
+  if (!email.trim()) {
+    setError("Por favor ingresa tu correo electrónico");
+    return;
+  }
+  if (!password) {
+    setError("Por favor ingresa tu contraseña");
+    return;
+  }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Por favor ingresa un correo electrónico válido");
-      return;
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    setError("Por favor ingresa un correo electrónico válido");
+    return;
+  }
 
-    setIsLoading(true);
-    try {
-      await login(email.trim(), password);
+  setIsLoading(true);
+  try {
+    // 🧩 logs para ver qué se está enviando realmente
+    console.log("📧 Email enviado:", email.trim());
+    console.log("🔑 Password enviado:", password);
+
+    const response = await login(email.trim(), password);
+
+    console.log("✅ Respuesta del backend:", response);
+
+    // 👇 dependiendo del rol del usuario, redirigimos distinto
+    if (response?.role === "doctor") {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "DoctorHome" as never }],
+      });
+    } else if (response?.role === "nurse") {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "NurseHome" as never }],
+      });
+    } else if (response?.role === "guardian") {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "GuardianHome" as never }],
+      });
+    } else {
+      // paciente por defecto
       navigation.reset({
         index: 0,
         routes: [{ name: "HomePage" as never }],
       });
-    } catch (err: any) {
-      if (err.response) {
-        const status = err.response.status;
-        const message = err.response.data?.message;
-        if (status === 401)
-          setError("Correo o contraseña incorrectos. Verifica tus credenciales.");
-        else if (status === 404) setError("Usuario no encontrado.");
-        else if (status === 403) setError("Cuenta bloqueada. Contacta al administrador.");
-        else if (status === 500) setError("Error del servidor. Intenta más tarde.");
-        else setError(message || "Error al iniciar sesión.");
-      } else if (err.request) {
-        setError("No se pudo conectar con el servidor. Revisa tu conexión.");
-      } else {
-        setError("Error inesperado. Intenta nuevamente.");
-      }
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (err: any) {
+    console.log("❌ Error en login:", err.message);
+    console.log("📡 Detalles del backend:", err.response?.data);
+
+    if (err.response) {
+      const status = err.response.status;
+      const message = err.response.data?.message;
+      if (status === 401)
+        setError("Correo o contraseña incorrectos. Verifica tus credenciales.");
+      else if (status === 404) setError("Usuario no encontrado.");
+      else if (status === 403) setError("Cuenta bloqueada. Contacta al administrador.");
+      else if (status === 500) setError("Error del servidor. Intenta más tarde.");
+      else setError(message || "Error al iniciar sesión.");
+    } else if (err.request) {
+      setError("No se pudo conectar con el servidor. Revisa tu conexión.");
+    } else {
+      setError("Error inesperado. Intenta nuevamente.");
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView
@@ -154,30 +172,6 @@ export function LoginScreen() {
               <Text style={styles.registerBold}>Regístrate aquí</Text>
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Usuarios de prueba */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>👥 Usuarios de prueba:</Text>
-          <View style={styles.rowBetween}>
-            <Text style={styles.infoLabel}>Doctor:</Text>
-            <Text style={styles.infoValue}>carlos.mendoza@hospital.cl</Text>
-          </View>
-          <View style={styles.rowBetween}>
-            <Text style={styles.infoLabel}>Enfermera:</Text>
-            <Text style={styles.infoValue}>ana.perez@hospital.cl</Text>
-          </View>
-          <View style={styles.rowBetween}>
-            <Text style={styles.infoLabel}>Paciente:</Text>
-            <Text style={styles.infoValue}>sofia.ramirez@email.cl</Text>
-          </View>
-          <View style={styles.rowBetween}>
-            <Text style={styles.infoLabel}>Paciente:</Text>
-            <Text style={styles.infoValue}>pedro.flores@email.cl</Text>
-          </View>
-          <Text style={styles.infoFooter}>
-            💡 Contraseña para todos: Doctor123! / Nurse123! / Patient123!
-          </Text>
         </View>
 
         {/* Footer */}

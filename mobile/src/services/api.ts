@@ -16,6 +16,7 @@ api.interceptors.request.use(
   async (config: any) => { 
     try {
       const token = await AsyncStorage.getItem("token");
+
       
       if (token) {
         // Asegura que 'headers' existe

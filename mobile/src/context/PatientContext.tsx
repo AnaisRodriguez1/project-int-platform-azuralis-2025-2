@@ -6,6 +6,7 @@ interface PatientContextData {
   patientId: string;
   cancerType: CancerType;
   name: string;
+  selectedColor?: CancerType;
   // Agrega más campos si los usas en el dashboard móvil (ej: stage, diagnosis, etc.)
 }
 

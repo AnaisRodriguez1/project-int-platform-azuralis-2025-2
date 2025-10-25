@@ -183,7 +183,7 @@ export function RegisterScreen() {
                 }
               >
                 <Picker.Item label="Paciente" value="patient" />
-                <Picker.Item label="Doctor" value="doctor" />
+                <Picker.Item label="Médico/a" value="doctor" />
                 <Picker.Item label="Enfermera/o" value="nurse" />
                 <Picker.Item label="Cuidador/a" value="guardian" />
               </Picker>

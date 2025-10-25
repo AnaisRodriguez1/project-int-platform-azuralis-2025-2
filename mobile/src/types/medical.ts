@@ -12,7 +12,11 @@ export type CancerType =
   | 'hepatic'
   | 'other';
 
-export type UserRole = 'patient' | 'doctor' | 'nurse' | 'guardian';
+export type UserRole =
+  | 'patient'
+  | 'doctor'
+  | 'nurse'
+  | 'guardian';
 
 export interface EmergencyContact {
   name: string;
@@ -44,12 +48,13 @@ export interface CareTeamMember {
 export interface Patient {
   id: string;
   name: string;
-  age: number;
+  dateOfBirth: string;
   rut: string;
   photo?: string;
   diagnosis: string;
   stage: string;
   cancerType: CancerType;
+  selectedColor?: CancerType;
   allergies: string[];
   currentMedications: string[];
   emergencyContacts: EmergencyContact[];
@@ -119,33 +124,33 @@ export const cancerColors: Record<CancerType, { color: string; name: string }> =
 export const doctorColor = '#3B82F6';
 export const nurseColor = '#00B4D8';
 
-// 🎨 colores equivalentes a las clases Tailwind, seguros para RN
-export const documentType: Record<
-  DocumentType,
-  { background: string; text: string; name: string }
-> = {
-  examen: { background: '#DBEAFE', text: '#1E40AF', name: 'Examen' },
-  cirugia: { background: '#FECACA', text: '#7F1D1D', name: 'Cirugía' },
-  quimioterapia: { background: '#E9D5FF', text: '#581C87', name: 'Quimioterapia' },
-  radioterapia: { background: '#FED7AA', text: '#9A3412', name: 'Radioterapia' },
-  receta: { background: '#BBF7D0', text: '#065F46', name: 'Receta' },
-  informe_medico: { background: '#E0E7FF', text: '#3730A3', name: 'Informe Médico' },
-  consentimiento: { background: '#FEF9C3', text: '#92400E', name: 'Consentimiento' },
-  otro: { background: '#F3F4F6', text: '#374151', name: 'Otro' },
+// 🎨 reemplazo directo de clases Tailwind por colores hex equivalentes
+export const documentType: Record<DocumentType, { color: string; name: string }> = {
+  examen: { color: '#BFDBFE', name: 'Examen' }, // bg-blue-100 text-blue-800
+  cirugia: { color: '#FECACA', name: 'Cirugía' }, // bg-red-100 text-red-800
+  quimioterapia: { color: '#E9D5FF', name: 'Quimioterapia' }, // bg-purple-100 text-purple-800
+  radioterapia: { color: '#FED7AA', name: 'Radioterapia' }, // bg-orange-100 text-orange-800
+  receta: { color: '#BBF7D0', name: 'Receta' }, // bg-green-100 text-green-800
+  informe_medico: { color: '#C7D2FE', name: 'Informe Médico' }, // bg-indigo-100 text-indigo-800
+  consentimiento: { color: '#FEF08A', name: 'Consentimiento' }, // bg-yellow-100 text-yellow-800
+  otro: { color: '#E5E7EB', name: 'Otro' }, // bg-gray-100 text-gray-800
 };
 
-export const getDocumentTypeColor = (type: DocumentType): string =>
-  documentType[type]?.background || documentType.otro.background;
+export const getDocumentTypeColor = (type: DocumentType): string => {
+  return documentType[type]?.color || documentType.otro.color;
+};
 
-export const getDocumentTypeLabel = (type: DocumentType): string =>
-  documentType[type]?.name || documentType.otro.name;
+export const getDocumentTypeLabel = (type: DocumentType): string => {
+  return documentType[type]?.name || documentType.otro.name;
+};
 
-// --- INTERFACES DE USUARIO ---
+// --- INTERFACES DE USUARIO (Simplificadas y limpias) ---
 
 export interface SearchRecord {
   patientId: string;
   patientRut: string;
   patientName?: string;
+  patientPhoto?: any;
   searchedAt: Date;
 }
 
@@ -186,9 +191,13 @@ export interface NurseUser extends ClinicalStaffUser {
   license?: string;
 }
 
-export type User = PatientUser | GuardianUser | DoctorUser | NurseUser;
+export type User =
+  | PatientUser
+  | GuardianUser
+  | DoctorUser
+  | NurseUser;
 
-// --- PERMISOS ---
+// --- MODELO DE PERMISOS UNIFICADO (RBAC) ---
 
 export type CrudActions = {
   create?: boolean;
@@ -206,6 +215,8 @@ export interface AppPermissions {
   notes?: CrudActions & { scope: OwnershipScope };
   documents?: CrudActions & { scope: OwnershipScope };
 }
+
+// --- PERFILES DE PERMISOS POR ROL ---
 
 export const DOCTOR_PERMISSIONS: AppPermissions = {
   patientProfile: {
@@ -271,6 +282,8 @@ export const PATIENT_PERMISSIONS: AppPermissions = {
   documents: { create: true, read: true, update: true, delete: true, scope: 'own' },
 };
 
+// --- LÓGICA DE VERIFICACIÓN DE PERMISOS ---
+
 const PERMISSIONS_BY_ROLE: Record<UserRole, AppPermissions> = {
   doctor: DOCTOR_PERMISSIONS,
   nurse: NURSE_PERMISSIONS,
@@ -286,9 +299,13 @@ export function canUserModifyResource(
   const permissions = PERMISSIONS_BY_ROLE[user.role];
   const resourceType = 'content' in resource ? 'notes' : 'documents';
   const resourcePermissions = permissions[resourceType];
-  if (!resourcePermissions?.[action]) return false;
+
+  if (!resourcePermissions?.[action]) {
+    return false;
+  }
 
   const scope = resourcePermissions.scope;
+
   if (scope === 'all') return true;
 
   if (scope === 'own') {

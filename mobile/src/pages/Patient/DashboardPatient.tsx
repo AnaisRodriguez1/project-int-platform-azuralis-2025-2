@@ -1,18 +1,12 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet,} from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import { BottomNavigation } from "../../components/BottomNavigation";
-import { patientTabs } from "../../common/config/navigationsTabs";
+import { patientTabs } from "../../common/config/navigationsTabs"; // ✅ corregido nombre del archivo
 import { usePatientData } from "../../hooks/usePatientData";
 
-// 👇 Importar las pantallas específicas del paciente
+// 👇 Importar pantallas específicas del paciente
 import { HomePatient } from "./Home";
 import { NotesPatient } from "./Notes";
 import { DocumentsPatient } from "./Documents";
@@ -21,18 +15,22 @@ import { ProfilePatient } from "./Profile";
 export function DashboardPatient() {
   const { user, logout } = useAuth();
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState<"home" | "notes" | "documents" | "profile">("home");
   const { cancerColor } = usePatientData();
 
   const handleLogout = () => {
     logout();
-    navigation.replace("Login"); // 👈 o el nombre de tu pantalla inicial
+    navigation.replace("Home"); // 🔹 equivalente al navigate('/') de web
+  };
+
+  const onTabChange = (tabId: string) => {
+    setActiveTab(tabId as any);
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case "home":
-        return <HomePatient onTabChange={setActiveTab} />;
+        return <HomePatient onTabChange={onTabChange} />;
       case "notes":
         return <NotesPatient />;
       case "documents":
@@ -46,6 +44,7 @@ export function DashboardPatient() {
 
   return (
     <View style={styles.container}>
+      {/* Scroll principal */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Header */}
         <View style={styles.header}>
@@ -53,19 +52,20 @@ export function DashboardPatient() {
             <Text style={styles.title}>Mi Ficha Médica</Text>
             <Text style={styles.subtitle}>Bienvenido/a, {user?.name}</Text>
           </View>
+
           <TouchableOpacity onPress={handleLogout} style={styles.outlineBtn}>
             <Text style={styles.outlineText}>Cerrar Sesión</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Contenido dinámico */}
+        {/* Caja blanca con contenido dinámico */}
         <View style={styles.contentBox}>{renderContent()}</View>
       </ScrollView>
 
       {/* Bottom Navigation */}
       <BottomNavigation
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={onTabChange}
         accentColor={cancerColor.color}
         tabs={patientTabs}
       />
@@ -87,16 +87,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 26,
+    fontWeight: "bold",
     color: "#111827",
   },
   subtitle: {
     color: "#6B7280",
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 2,
   },
   outlineBtn: {
@@ -115,5 +115,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
   },
 });

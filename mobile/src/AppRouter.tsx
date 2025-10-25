@@ -3,18 +3,25 @@ import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "./context/AuthContext";
+
+// 🔹 Páginas
 import { LoginScreen } from "./pages/LoginScreen";
+import { HomePage } from "./pages/HomePage";
+import { RegisterScreen } from "./pages/RegisterScreen";
 import { DashboardClinicalStaff } from "./pages/ClinicalStaff/DashboardClinicalStaff";
 import { DashboardPatient } from "./pages/Patient/DashboardPatient";
 import { DashboardGuardian } from "./pages/Guardian/DashboardGuardian";
+
 import type { UserRole } from "./types/medical";
 
-// 🔹 Helper para definir la ruta inicial según el rol
+// ======================================================
+// 🔹 Función para obtener la ruta del dashboard según el rol
+// ======================================================
 const getDashboardRoute = (role: UserRole): keyof RootStackParamList => {
   switch (role) {
     case "doctor":
     case "nurse":
-      return "DashboardClinical";
+      return "DashboardClinicalStaff";
     case "patient":
       return "DashboardPatient";
     case "guardian":
@@ -24,24 +31,31 @@ const getDashboardRoute = (role: UserRole): keyof RootStackParamList => {
   }
 };
 
+// ======================================================
+// 🔹 Tipado del stack
+// ======================================================
 export type RootStackParamList = {
   Login: undefined;
-  DashboardClinical: undefined;
+  HomePage: undefined;
+  Register: undefined;
+  DashboardClinicalStaff: undefined;
   DashboardPatient: undefined;
   DashboardGuardian: undefined;
 };
 
-// 🔹 Stack Navigator (en lugar de BrowserRouter)
+// ======================================================
+// 🔹 Stack Navigator
+// ======================================================
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
-  // 🔸 Mientras carga la sesión
+  // 🌀 Mientras carga la sesión
   if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#fa8fb5" />
       </View>
     );
   }
@@ -52,13 +66,15 @@ export function AppNavigator() {
         initialRouteName={isAuthenticated && user ? getDashboardRoute(user.role) : "Login"}
         screenOptions={{ headerShown: false }}
       >
-        {/* Ruta pública */}
+        {/* 🔓 Rutas públicas */}
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="HomePage" component={HomePage} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
 
-        {/* Rutas protegidas */}
+        {/* 🔒 Rutas protegidas (solo si hay sesión activa) */}
         {isAuthenticated && (
           <>
-            <Stack.Screen name="DashboardClinical" component={DashboardClinicalStaff} />
+            <Stack.Screen name="DashboardClinicalStaff" component={DashboardClinicalStaff} />
             <Stack.Screen name="DashboardPatient" component={DashboardPatient} />
             <Stack.Screen name="DashboardGuardian" component={DashboardGuardian} />
           </>
