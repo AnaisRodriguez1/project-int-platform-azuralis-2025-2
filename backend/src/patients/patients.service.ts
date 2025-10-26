@@ -182,9 +182,11 @@ export class PatientsService {
   async generateQRCode(id: string): Promise<string> {
     const patient = await this.findOne(id);
     
-    // Generar QR Code dinámicamente
-    const qrData = patient.qrCode || `PATIENT:${patient.id}`;
-    const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+    // Generar URL de emergencia con dominio de producción
+    const emergencyUrl = `https://www.lacito.cl/emergency/${patient.qrCode}`;
+    
+    // Generar QR Code con la URL de emergencia
+    const qrCodeDataURL = await QRCode.toDataURL(emergencyUrl, {
       width: 300,
       margin: 2,
       color: {
