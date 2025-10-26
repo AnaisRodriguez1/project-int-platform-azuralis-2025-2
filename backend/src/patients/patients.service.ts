@@ -182,8 +182,13 @@ export class PatientsService {
   async generateQRCode(id: string): Promise<string> {
     const patient = await this.findOne(id);
     
-    // Generar URL de emergencia con dominio de producción
-    const emergencyUrl = `https://www.lacito.cl/emergency/${patient.qrCode}`;
+    // Usar variable de entorno según el ambiente
+    const isProduction = process.env.NODE_ENV === 'production';
+    const frontendUrl = isProduction 
+      ? (process.env.FRONTEND_URL_PROD || 'https://frontend-azuralis-project-int-platform.onrender.com')
+      : (process.env.FRONTEND_URL || 'http://localhost:5173');
+    
+    const emergencyUrl = `${frontendUrl}/emergency/${patient.qrCode}`;
     
     // Generar QR Code con la URL de emergencia
     const qrCodeDataURL = await QRCode.toDataURL(emergencyUrl, {
