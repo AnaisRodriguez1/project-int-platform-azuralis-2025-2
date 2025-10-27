@@ -171,45 +171,43 @@ export function EditableClinicalProfile() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-start space-x-6">
+            <div className="flex flex-col md:flex-row items-start md:space-x-6 space-y-6 md:space-y-0">
               {/* Avatar */}
-              <div className="space-y-2">
+              <div className="flex flex-col items-center space-y-2 w-full md:w-auto">
                 <Avatar className="w-20 h-20">
                   <AvatarImage src={userPhoto?.url} alt={user?.name} />
                   <AvatarFallback className="text-lg" style={{ backgroundColor: accentColor + '40', color: accentColor }}>
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-center">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      fileInputRef.current?.click();
-                    }}
-                  >
-                    <Edit3 className="w-3 h-3 mr-1" />
-                    Cambiar Foto
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      e.target.value = '';
-                      const imageUrl = URL.createObjectURL(file);
-                      setSelectedImageSrc(imageUrl);
-                      setCropDialogOpen(true);
-                    }}
-                  />
-                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  <Edit3 className="w-3 h-3 mr-1" />
+                  Cambiar Foto
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    e.target.value = '';
+                    const imageUrl = URL.createObjectURL(file);
+                    setSelectedImageSrc(imageUrl);
+                    setCropDialogOpen(true);
+                  }}
+                />
               </div>
 
               {/* Info */}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-4 w-full">
                 {/* Nombre */}
                 <div>
                   <Label className="text-sm text-gray-600">Nombre completo</Label>

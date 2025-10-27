@@ -302,57 +302,55 @@ export function EditableProfile() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start space-x-6">
+          <div className="flex flex-col md:flex-row items-start md:space-x-6 space-y-6 md:space-y-0">
             {/* Avatar */}
-            <div className="space-y-2">
+            <div className="flex flex-col items-center space-y-2 w-full md:w-auto">
               <Avatar className="w-20 h-20">
                 <AvatarImage src={userPhoto?.url} alt={patient?.name} />
                 <AvatarFallback className="text-lg" style={{ backgroundColor: currentCancerColor.color + '40' }}>
                   {patient?.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <div className="text-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    console.log('Button clicked, triggering file input');
-                    fileInputRef.current?.click();
-                  }}
-                >
-                  <Edit3 className="w-3 h-3 mr-1" />
-                  Cambiar Foto
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    console.log('handlePhotoUpload called', e.target.files);
-                    const file = e.target.files?.[0];
-                    if (!file) {
-                      console.log('No file selected');
-                      return;
-                    }
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  console.log('Button clicked, triggering file input');
+                  fileInputRef.current?.click();
+                }}
+              >
+                <Edit3 className="w-3 h-3 mr-1" />
+                Cambiar Foto
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  console.log('handlePhotoUpload called', e.target.files);
+                  const file = e.target.files?.[0];
+                  if (!file) {
+                    console.log('No file selected');
+                    return;
+                  }
 
-                    console.log('File selected:', file.name, file.size);
+                  console.log('File selected:', file.name, file.size);
 
-                    // Limpiar el input ANTES de procesar para evitar problemas
-                    e.target.value = '';
+                  // Limpiar el input ANTES de procesar para evitar problemas
+                  e.target.value = '';
 
-                    // Crear URL para mostrar en el diálogo de recorte
-                    const imageUrl = URL.createObjectURL(file);
-                    console.log('Image URL created:', imageUrl);
-                    setSelectedImageSrc(imageUrl);
-                    setCropDialogOpen(true);
-                  }}
-                />
-              </div>
+                  // Crear URL para mostrar en el diálogo de recorte
+                  const imageUrl = URL.createObjectURL(file);
+                  console.log('Image URL created:', imageUrl);
+                  setSelectedImageSrc(imageUrl);
+                  setCropDialogOpen(true);
+                }}
+              />
             </div>
 
             {/* Info */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 w-full">
 
               {/* Nombre */}
               <div>
