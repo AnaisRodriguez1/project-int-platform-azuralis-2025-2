@@ -5,6 +5,7 @@ import { DashboardGuardian } from "../pages/Guardian/DashboardGuardian";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { HomePage } from "../pages/HomePage";
 import { RegisterScreen } from "../pages/RegisterScreen";
+import { EmergencyAccess } from "../pages/EmergencyAccess";
 
 export function AppRouter() {
     return (
@@ -15,6 +16,9 @@ export function AppRouter() {
 
                 {/* Ruta pública - Registro */}
                 <Route path="/register" element={<RegisterScreen />} />
+
+                {/* Ruta pública - Acceso de emergencia vía QR (SIN AUTENTICACIÓN) */}
+                <Route path="/emergency/:qrCode" element={<EmergencyAccess />} />
 
                 {/* Rutas protegidas - Dashboards */}
                 {/* Dashboard unificado para Doctor y Enfermera */}

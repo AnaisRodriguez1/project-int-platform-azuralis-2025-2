@@ -45,6 +45,7 @@ export class PatientsController {
     return this.patientsService.findByRut(rut);
   }
 
+  // Specific routes with :id must come before the generic :id route
   @Get(':id/name')
   async getPatientName(@Param('id') id: string) {
     const name = await this.patientsService.getPatientName(id);
@@ -72,6 +73,7 @@ export class PatientsController {
     return this.patientsService.findPatientDocuments(id);
   }
 
+  // Generic :id route must come last
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.patientsService.findOne(id);

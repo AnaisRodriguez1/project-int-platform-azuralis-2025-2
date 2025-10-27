@@ -14,6 +14,9 @@ import { PatientsService } from './patients.service';
 import { CareTeamMember } from './entities/care-team-member.entity';
 import { CareTeamController } from './care-team/care-team.controller';
 import { CareTeamService } from './care-team/care-team.service';
+import { EmergencyAccess } from './entities/emergency-access.entity';
+import { EmergencyAccessController } from './emergency-access/emergency-access.controller';
+import { EmergencyAccessService } from './emergency-access/emergency-access.service';
 import { SharedModule } from '../shared/shared.module';
 
 @Module({
@@ -25,10 +28,23 @@ import { SharedModule } from '../shared/shared.module';
       PatientNote,
       PatientDocument,
       CareTeamMember,
+      EmergencyAccess,
     ]),
     SharedModule, // Importar el módulo compartido que exporta R2StorageService
   ],
-  controllers: [PatientsController, PatientNotesController, PatientDocumentsController, CareTeamController],
-  providers: [PatientsService, PatientNotesService, PatientDocumentsService, CareTeamService],
+  controllers: [
+    PatientsController,
+    PatientNotesController,
+    PatientDocumentsController,
+    CareTeamController,
+    EmergencyAccessController,
+  ],
+  providers: [
+    PatientsService,
+    PatientNotesService,
+    PatientDocumentsService,
+    CareTeamService,
+    EmergencyAccessService,
+  ],
 })
 export class PatientsModule {}

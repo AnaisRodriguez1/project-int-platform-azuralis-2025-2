@@ -220,9 +220,16 @@ export class PatientsService {
   async generateQRCode(id: string): Promise<string> {
     const patient = await this.findOne(id);
     
-    // Generar QR Code dinámicamente
-    const qrData = patient.qrCode || `PATIENT:${patient.id}`;
-    const qrCodeDataURL = await QRCode.toDataURL(qrData, {
+    // Usar variable de entorno según el ambiente
+    const isProduction = process.env.NODE_ENV === 'production';
+    const frontendUrl = isProduction 
+      ? (process.env.FRONTEND_URL_PROD || 'https://frontend-azuralis-project-int-platform.onrender.com')
+      : (process.env.FRONTEND_URL || 'http://localhost:5173');
+    
+    const emergencyUrl = `${frontendUrl}/emergency/${patient.qrCode}`;
+    
+    // Generar QR Code con la URL de emergencia
+    const qrCodeDataURL = await QRCode.toDataURL(emergencyUrl, {
       width: 300,
       margin: 2,
       color: {
@@ -281,7 +288,7 @@ export class PatientsService {
 
   async getPatientName(patientId: string): Promise<string> {
     const patient = await this.patientRepo.findOne({
-      where: { id: patientId.toUpperCase() }, // Convertir a MAYÚSCULAS para buscar en BD
+      where: { id: patientId },
       select: ['name'],
     });
     
