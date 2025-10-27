@@ -66,11 +66,20 @@ export class EmergencyAccessService {
       throw new BadRequestException('RUT inválido. Verifica el formato y dígito verificador.');
     }
 
-    // Find patient by QR code
-    const patient = await this.patientRepository.findOne({
+    // Find patient by QR code or by ID (extract UUID if qrCode format is PATIENT:uuid)
+    let patient = await this.patientRepository.findOne({
       where: { qrCode },
       relations: ['emergencyContacts', 'careTeam'],
     });
+
+    // If not found by qrCode, try extracting UUID and searching by ID
+    if (!patient && qrCode.startsWith('PATIENT:')) {
+      const patientId = qrCode.replace('PATIENT:', '');
+      patient = await this.patientRepository.findOne({
+        where: { id: patientId },
+        relations: ['emergencyContacts', 'careTeam'],
+      });
+    }
 
     if (!patient) {
       throw new NotFoundException('Paciente no encontrado con este código QR');
