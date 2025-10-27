@@ -252,21 +252,19 @@ const handleImageUpload = async (uri: string) => {
         <Text style={styles.subtitle}>Información médica y datos personales</Text>
       </View>
 
-      {/* Datos Personales */}
-      <View style={styles.card}>
-        <View style={styles.rowBetween}>
-          <View style={styles.row}>
-            <User size={20} color={currentCancerColor.color} />
-            <Text style={styles.cardTitle}>Datos Personales</Text>
-          </View>
+      {/* 🩺 Datos Personales */}
+      <View style={styles.personalCard}>
+        <View style={styles.row}>
+          <User size={20} color={currentCancerColor.color} />
+          <Text style={styles.cardTitle}>Datos Personales</Text>
         </View>
 
-        {/* Avatar + Cambiar foto */}
-        <View style={[styles.row, { alignItems: "flex-start", marginTop: 12 }]}>
-          <View style={{ alignItems: "center", marginRight: 16 }}>
+        {/* FOTO + BOTÓN */}
+        <View style={styles.photoSection}>
+          <View style={{ alignItems: "center" }}>
             <View
               style={[
-                styles.avatar,
+                styles.avatarLarge,
                 { backgroundColor: currentCancerColor.color + "40" },
               ]}
             >
@@ -280,67 +278,75 @@ const handleImageUpload = async (uri: string) => {
               )}
             </View>
 
-            <TouchableOpacity style={styles.outlineBtn} onPress={pickImage} disabled={saving}>
+            <TouchableOpacity
+              style={styles.changePhotoBtn}
+              onPress={pickImage}
+              disabled={saving}
+            >
               <Edit3 size={14} color="#374151" />
-              <Text style={styles.colorText}>Cambiar Foto</Text>
+              <Text style={styles.changePhotoText}>Cambiar Foto</Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Info y Nombre */}
-          <View style={{ flex: 1 }}>
-            {/* Nombre */}
-            <View style={styles.rowBetween}>
-              <Text style={styles.label}>Nombre completo</Text>
-              {canEdit("name") && !editingName && (
-                <TouchableOpacity onPress={startEditingName}>
-                  <Edit3 size={16} color="#6B7280" />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {editingName ? (
-              <View>
-                <TextInput
-                  style={styles.input}
-                  value={tempName}
-                  onChangeText={setTempName}
-                  placeholder="Nombre completo"
-                />
-                <View style={styles.rowRight}>
-                  <TouchableOpacity
-                    style={[styles.saveBtn, { backgroundColor: currentCancerColor.color }]}
-                    disabled={saving}
-                    onPress={saveName}
-                  >
-                    <Save size={16} color="#fff" />
-                    <Text style={styles.btnText}>Guardar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.cancelBtn}
-                    onPress={() => setEditingName(false)}
-                  >
-                    <X size={16} color="#374151" />
-                    <Text style={styles.cancelText}>Cancelar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <Text style={styles.fieldText}>{patient.name}</Text>
+        {/* INFO */}
+        <View style={{ marginTop: 16 }}>
+          {/* Nombre + lápiz */}
+          <View style={styles.rowBetween}>
+            <Text style={styles.label}>Nombre completo</Text>
+            {canEdit("name") && !editingName && (
+              <TouchableOpacity onPress={startEditingName}>
+                <Edit3 size={16} color="#6B7280" />
+              </TouchableOpacity>
             )}
+          </View>
 
-            {/* Edad, RUT, Email */}
-            <View style={{ marginTop: 10 }}>
-              <Text style={styles.label}>Edad</Text>
-              <Text style={styles.fieldText}>{calculateAge(patient.dateOfBirth)} años</Text>
+          {editingName ? (
+            <View>
+              <TextInput
+                style={styles.input}
+                value={tempName}
+                onChangeText={setTempName}
+                placeholder="Nombre completo"
+              />
+              <View style={styles.rowRight}>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: currentCancerColor.color }]}
+                  disabled={saving}
+                  onPress={saveName}
+                >
+                  <Save size={16} color="#fff" />
+                  <Text style={styles.btnText}>Guardar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setEditingName(false)}
+                >
+                  <X size={16} color="#374151" />
+                  <Text style={styles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={{ marginTop: 8 }}>
-              <Text style={styles.label}>RUT</Text>
-              <Text style={styles.fieldText}>{patient.rut}</Text>
-            </View>
-            <View style={{ marginTop: 8 }}>
-              <Text style={styles.label}>Correo electrónico</Text>
-              <Text style={styles.fieldText}>{user?.email}</Text>
-            </View>
+          ) : (
+            <Text style={styles.fieldText}>{patient.name}</Text>
+          )}
+
+          {/* Otras secciones */}
+          <View style={{ marginTop: 10 }}>
+            <Text style={styles.label}>Edad</Text>
+            <Text style={styles.fieldText}>
+              {calculateAge(patient.dateOfBirth)} años
+            </Text>
+          </View>
+
+          <View style={{ marginTop: 10 }}>
+            <Text style={styles.label}>RUT</Text>
+            <Text style={styles.fieldText}>{patient.rut}</Text>
+          </View>
+
+          <View style={{ marginTop: 10 }}>
+            <Text style={styles.label}>Correo electrónico</Text>
+            <Text style={styles.fieldText}>{user?.email}</Text>
           </View>
         </View>
       </View>
@@ -920,6 +926,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 4,
+
+    width: "108%",        // ocupa más ancho que el padding del ScrollView
+    alignSelf: "center",  // centra el recuadro
+    marginLeft: -10,   
   },
   cardSub: { backgroundColor: "#F9FAFB", borderRadius: 8, padding: 8, marginTop: 8 },
   cardTitle: { fontWeight: "700", fontSize: 16, marginLeft: 8, color: "#111827" },
@@ -1038,5 +1048,62 @@ const styles = StyleSheet.create({
   fontSize: 12,
   fontWeight: "700",
   color: "#374151",
+  },
+  
+  personalCard: {
+  backgroundColor: "#fff",
+  borderRadius: 16,
+  paddingVertical: 22,
+  paddingHorizontal: 18,
+  marginTop: 16,
+  elevation: 3,
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 6,
+  minHeight: 320,
+
+  // 💡 agrandar horizontalmente el recuadro blanco:
+  width: "108%",        // ocupa más ancho que el padding del ScrollView
+  alignSelf: "center",  // centra el recuadro
+  marginLeft: -10,      // compensa el padding lateral del ScrollView
 },
+
+
+photoSection: {
+  flexDirection: "row",
+  justifyContent: "center",
+  marginTop: 16,
+  marginBottom: 4,
+},
+
+avatarLarge: {
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  overflow: "hidden",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+changePhotoBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  borderWidth: 1,
+  borderColor: "#D1D5DB",
+  borderRadius: 10,
+  paddingVertical: 8,
+  paddingHorizontal: 14,
+  backgroundColor: "#F9FAFB",
+  marginTop: 10,
+},
+
+changePhotoText: {
+  color: "#374151",
+  fontWeight: "700",
+  marginLeft: 6,
+  fontSize: 14,
+},
+
 });

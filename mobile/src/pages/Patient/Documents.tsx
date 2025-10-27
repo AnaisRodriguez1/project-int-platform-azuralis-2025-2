@@ -380,21 +380,21 @@ const confirmUploadComite = async () => {
     <ScrollView style={styles.container}>
       {/* Header */}
       {!hideHeader ? (
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>Mis Documentos</Text>
-            <Text style={styles.subtitle}>
-              Guarda tus recetas, resultados y documentos médicos
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setIsModalVisible(true)}
-            style={[styles.primaryBtn, { backgroundColor: cancerColor.color }]}
-          >
-            <Plus size={16} color="#fff" />
-            <Text style={styles.primaryBtnText}>Nuevo Documento</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={{ marginBottom: 16 }}>
+        <Text style={styles.title}>Mis Documentos</Text>
+        <Text style={styles.subtitle}>
+          Guarda tus recetas, resultados y documentos médicos
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => setIsModalVisible(true)}
+          style={[styles.newDocBtn, { backgroundColor: cancerColor.color }]}
+        >
+          <Plus size={18} color="#fff" />
+          <Text style={styles.newDocText}>Nuevo Documento</Text>
+        </TouchableOpacity>
+      </View>
+
       ) : (
         <View style={{ alignItems: "flex-end" }}>
           <TouchableOpacity
@@ -412,7 +412,7 @@ const confirmUploadComite = async () => {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 10 }}
+          style={{ marginTop: 10, marginBottom: 8 }}
         >
           {(
             [
@@ -454,60 +454,59 @@ const confirmUploadComite = async () => {
         </ScrollView>
       )}
 
-      {/* 🟣 Sección fija: Comité Oncológico */}
-      <View style={styles.comiteBox}>
-        <View style={styles.comiteHeader}>
-          <Text style={styles.comiteTitle}>Comité Oncológico</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TouchableOpacity style={styles.comiteAddBtn} onPress={handleAddComiteFile}>
-              <Upload color="#fff" size={16} />
-              <Text style={styles.comiteAddText}>Subir</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.comiteAddBtn} onPress={handleAddComitePhoto}>
-              <Camera color="#fff" size={16} />
-              <Text style={styles.comiteAddText}>Foto</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+     {/* 🟣 Sección fija: Comité Oncológico */}
+    <View style={styles.comiteBox}>
+      <Text style={styles.comiteTitle}>Comité Oncológico</Text>
 
-        {comiteDocs.length === 0 ? (
-          <View style={styles.emptyComite}>
-            <FolderOpen color="#7C3AED" size={36} />
-            <Text style={styles.emptyComiteText}>Sin archivos aún</Text>
-          </View>
-        ) : (
-          comiteDocs.map((doc) => (
-            <View key={doc.id} style={styles.comiteDocCard}>
-              <FileText color="#7C3AED" size={20} />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={{ fontWeight: "600", color: "#111827" }}>
-                  {doc.title}
-                </Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Calendar size={12} color="#6B7280" />
-                  <Text style={{ color: "#6B7280", fontSize: 12 }}>
-                    {formatDate(doc.uploadDate)}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => downloadDocument(doc.id)}
-                style={styles.actionBtn}
-              >
-                <FileText color="#5B21B6" size={16} />
-              </TouchableOpacity>
-              {canDeleteDocument(doc) && (
-                <TouchableOpacity
-                  onPress={() => handleDeleteDocument(doc.id)}
-                  style={styles.actionBtnRed}
-                >
-                  <Trash2 color="#DC2626" size={16} />
-                </TouchableOpacity>
-              )}
-            </View>
-          ))
-        )}
+      <View style={styles.comiteButtonsRow}>
+        <TouchableOpacity style={styles.comiteAddBtn} onPress={handleAddComiteFile}>
+          <Upload color="#fff" size={18} />
+          <Text style={styles.comiteAddText}>Subir</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.comiteAddBtn} onPress={handleAddComitePhoto}>
+          <Camera color="#fff" size={18} />
+          <Text style={styles.comiteAddText}>Foto</Text>
+        </TouchableOpacity>
       </View>
+
+      {comiteDocs.length === 0 ? (
+        <View style={styles.emptyComite}>
+          <FolderOpen color="#7C3AED" size={36} />
+          <Text style={styles.emptyComiteText}>Sin archivos aún</Text>
+        </View>
+      ) : (
+        comiteDocs.map((doc) => (
+          <View key={doc.id} style={styles.comiteDocCard}>
+            <FileText color="#7C3AED" size={20} />
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={{ fontWeight: "600", color: "#111827" }}>
+                {doc.title}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Calendar size={12} color="#6B7280" />
+                <Text style={{ color: "#6B7280", fontSize: 12 }}>
+                  {formatDate(doc.uploadDate)}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => downloadDocument(doc.id)}
+              style={styles.actionBtn}
+            >
+              <FileText color="#5B21B6" size={16} />
+            </TouchableOpacity>
+            {canDeleteDocument(doc) && (
+              <TouchableOpacity
+                onPress={() => handleDeleteDocument(doc.id)}
+                style={styles.actionBtnRed}
+              >
+                <Trash2 color="#DC2626" size={16} />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))
+      )}
+    </View>
 
       {/* 📚 Otros documentos */}
       <Text style={[styles.title, { marginTop: 10 }]}>Otros documentos</Text>
@@ -708,8 +707,8 @@ const styles = StyleSheet.create({
   // Comité
   comiteBox: { backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: "#7C3AED", borderRadius: 12, padding: 12, marginTop: 14, marginBottom: 16 },
   comiteHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  comiteTitle: { color: "#5B21B6", fontWeight: "700", fontSize: 18 },
-  comiteAddBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#7C3AED", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 },
+  comiteTitle: { color: "#5B21B6", fontWeight: "700", fontSize: 18 , marginBottom: 10,},
+  //comiteAddBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#7C3AED", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 },
   comiteAddText: { color: "#fff", fontWeight: "600", marginLeft: 6 },
   emptyComite: { alignItems: "center", padding: 12 },
   emptyComiteText: { color: "#6B21A8", fontWeight: "600", marginTop: 6 },
@@ -769,4 +768,38 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     fontSize: 13,
   },
+
+  newDocBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  marginTop: 12,
+  paddingVertical: 10,
+  borderRadius: 10,
+},
+newDocText: {
+  color: "#fff",
+  fontWeight: "600",
+  marginLeft: 6,
+  fontSize: 15,
+},
+comiteHeaderColumn: {
+  marginBottom: 10,
+},
+comiteButtonsRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginBottom: 14, // 🟢 espacio entre botones y lista de archivos
+},
+comiteAddBtn: {
+  flex: 1,                      // 🟣 más ancho
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#7C3AED",
+  paddingVertical: 10,
+  borderRadius: 10,
+  marginHorizontal: 4,
+},
+
 });

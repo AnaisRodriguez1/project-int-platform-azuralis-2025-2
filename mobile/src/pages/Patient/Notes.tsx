@@ -231,16 +231,6 @@ export function NotesPatient({ hideHeader = false }: NotesPatientProps) {
           <Text style={styles.emptySubtitle}>
             Comienza a registrar tus síntomas, estado de ánimo u observaciones
           </Text>
-          <TouchableOpacity
-            style={[
-              styles.newNoteButton,
-              { backgroundColor: cancerColor.color, marginTop: 10 },
-            ]}
-            onPress={() => setIsDialogOpen(true)}
-          >
-            <Plus color="#fff" size={18} />
-            <Text style={styles.newNoteText}>Crear primera nota</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         notes.map((note) => (
