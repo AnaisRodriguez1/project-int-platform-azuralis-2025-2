@@ -55,20 +55,11 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
   };
 
   const filterDocuments = () => {
-    let filtered = selectedFilter === 'todos' 
+    const filtered = selectedFilter === 'todos' 
       ? documents 
       : documents.filter(doc => doc.type === selectedFilter);
     
-    // Separar el documento del Comité Oncológico
-    const comiteDoc = filtered.find(doc => 
-      doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico')
-    );
-    const otherDocs = filtered.filter(doc => 
-      !(doc.title.toLowerCase().includes('comité') && doc.title.toLowerCase().includes('oncológico'))
-    );
-    
-    // Poner el documento del Comité Oncológico al principio si existe
-    setFilteredDocuments(comiteDoc ? [comiteDoc, ...otherDocs] : otherDocs);
+    setFilteredDocuments(filtered);
   };
 
   const getDocumentCountByType = (type: DocumentType | 'todos'): number => {
