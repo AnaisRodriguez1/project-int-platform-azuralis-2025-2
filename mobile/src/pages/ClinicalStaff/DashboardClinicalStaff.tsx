@@ -8,6 +8,7 @@ import { BottomNavigation } from "../../components/BottomNavigation";
 import { useIsMobile } from "../../hooks/use-mobile";
 import type { DoctorUser, NurseUser, Patient } from "../../types/medical";
 import { Search, Users, LogOut } from "lucide-react-native";
+import { EditableClinicalProfile } from "./EditableProfile";
 
 export function DashboardClinicalStaff() {
   const { user, logout } = useAuth();
@@ -51,80 +52,93 @@ export function DashboardClinicalStaff() {
     navigation.navigate("Login" as never);
   };
 
+  const renderContent = () => {
+    if (activeTab === "profile") {
+      return <EditableClinicalProfile />;
+    }
+
+    // Tab "home" por defecto
+    return (
+      <>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: accentColor }]}>
+          <View style={styles.headerRow}>
+            <View style={styles.avatar}>
+              <Text
+                style={{
+                  color: accentColor,
+                  fontSize: 28,
+                  fontWeight: "bold",
+                }}
+              >
+                {user?.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.headerName}>{user?.name}</Text>
+              <Text style={styles.headerSub}>
+                {roleLabel} · {user?.email}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Estadísticas */}
+        <View style={styles.statsSection}>
+          <View style={[styles.statCard, { backgroundColor: "#DBEAFE" }]}>
+            <Text style={[styles.statLabel, { color: "#1D4ED8" }]}>Mis pacientes</Text>
+            <Text style={[styles.statValue, { color: "#1E3A8A" }]}>
+              {stats.myPatients}
+            </Text>
+          </View>
+
+          <View style={[styles.statCard, { backgroundColor: "#D1FAE5" }]}>
+            <Text style={[styles.statLabel, { color: "#047857" }]}>Búsquedas</Text>
+            <Text style={[styles.statValue, { color: "#064E3B" }]}>
+              {stats.searchHistory}
+            </Text>
+          </View>
+
+          <View style={[styles.statCard, { backgroundColor: "#EDE9FE" }]}>
+            <Text style={[styles.statLabel, { color: "#6D28D9" }]}>Total pacientes</Text>
+            <Text style={[styles.statValue, { color: "#4C1D95" }]}>
+              {stats.totalPatients}
+            </Text>
+          </View>
+        </View>
+
+        {/* Acciones rápidas */}
+        <View style={styles.actionsSection}>
+          <TouchableOpacity
+            onPress={() => setActiveTab("search")}
+            style={[styles.buttonPrimary, { backgroundColor: "#2563EB" }]}
+          >
+            <Search color="white" size={22} />
+            <Text style={styles.buttonPrimaryText}>Buscar paciente</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab("careTeam")}
+            style={styles.buttonOutline}
+          >
+            <Users color="gray" size={22} />
+            <Text style={styles.buttonOutlineText}>Equipo de cuidados</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Logout - Solo en home */}
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <LogOut color="gray" size={20} />
+          <Text style={styles.logoutText}>Cerrar sesión</Text>
+        </TouchableOpacity>
+      </>
+    );
+  };
+
 return (
   <View style={styles.container}>
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: accentColor }]}>
-        <View style={styles.headerRow}>
-          <View style={styles.avatar}>
-            <Text
-              style={{
-                color: accentColor,
-                fontSize: 28,
-                fontWeight: "bold",
-              }}
-            >
-              {user?.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View>
-            <Text style={styles.headerName}>{user?.name}</Text>
-            <Text style={styles.headerSub}>
-              {roleLabel} · {user?.email}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Estadísticas */}
-      <View style={styles.statsSection}>
-        <View style={[styles.statCard, { backgroundColor: "#DBEAFE" }]}>
-          <Text style={[styles.statLabel, { color: "#1D4ED8" }]}>Mis pacientes</Text>
-          <Text style={[styles.statValue, { color: "#1E3A8A" }]}>
-            {stats.myPatients}
-          </Text>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: "#D1FAE5" }]}>
-          <Text style={[styles.statLabel, { color: "#047857" }]}>Búsquedas</Text>
-          <Text style={[styles.statValue, { color: "#064E3B" }]}>
-            {stats.searchHistory}
-          </Text>
-        </View>
-
-        <View style={[styles.statCard, { backgroundColor: "#EDE9FE" }]}>
-          <Text style={[styles.statLabel, { color: "#6D28D9" }]}>Total pacientes</Text>
-          <Text style={[styles.statValue, { color: "#4C1D95" }]}>
-            {stats.totalPatients}
-          </Text>
-        </View>
-      </View>
-
-      {/* Acciones rápidas */}
-      <View style={styles.actionsSection}>
-        <TouchableOpacity
-          onPress={() => setActiveTab("search")}
-          style={[styles.buttonPrimary, { backgroundColor: "#2563EB" }]}
-        >
-          <Search color="white" size={22} />
-          <Text style={styles.buttonPrimaryText}>Buscar paciente</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab("careTeam")}
-          style={styles.buttonOutline}
-        >
-          <Users color="gray" size={22} />
-          <Text style={styles.buttonOutlineText}>Equipo de cuidados</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Logout */}
-      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-        <LogOut color="gray" size={20} />
-        <Text style={styles.logoutText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+      {renderContent()}
     </ScrollView>
 
     {/* Bottom Navigation */}

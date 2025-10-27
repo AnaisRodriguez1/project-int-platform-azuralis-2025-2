@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   register: (userData: RegisterFormData) => Promise<any>;
+  refreshUser: () => Promise<void>;
 }
 
 interface RegisterFormData {
@@ -109,6 +110,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await AsyncStorage.multiRemove(["token", "user"]);
   };
 
+  // =====================================================
+  // 🧩 Refresh User
+  // =====================================================
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+
+      const userData: User = await apiService.checkAuthStatus(token);
+      setUser(userData);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+    } catch (error) {
+      console.error("Error refreshing user:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -116,6 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         logout,
+        refreshUser,
         isAuthenticated: !!user,
         isLoading,
       }}
