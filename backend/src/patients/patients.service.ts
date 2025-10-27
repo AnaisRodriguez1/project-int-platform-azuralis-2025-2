@@ -182,11 +182,8 @@ export class PatientsService {
   async generateQRCode(id: string): Promise<string> {
     const patient = await this.findOne(id);
     
-    // Usar variable de entorno según el ambiente
-    const isProduction = process.env.NODE_ENV === 'production';
-    const frontendUrl = isProduction 
-      ? (process.env.FRONTEND_URL_PROD || 'https://frontend-azuralis-project-int-platform.onrender.com')
-      : (process.env.FRONTEND_URL || 'http://localhost:5173');
+    // URL del frontend para los QR codes
+    const frontendUrl = process.env.FRONTEND_URL || 'https://lacito.cl';
     
     const emergencyUrl = `${frontendUrl}/emergency/${patient.qrCode}`;
     
