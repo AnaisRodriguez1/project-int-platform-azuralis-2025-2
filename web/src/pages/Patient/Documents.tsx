@@ -232,6 +232,12 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
       setPendingComiteFile(null);
       setPendingComiteTitle('Comité Oncológico');
       setShowComiteTitleModal(false);
+      
+      // Resetear el input de archivo para poder subir otro archivo inmediatamente
+      const fileInput = document.getElementById('comite-file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      
+      alert('✅ Documento del Comité Oncológico subido exitosamente. Puedes subir más archivos.');
     } catch (error) {
       console.error('Error al subir documento del Comité Oncológico:', error);
       alert('Error al subir el documento. Por favor intenta de nuevo.');
@@ -419,7 +425,12 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
       {/* Sección fija: Comité Oncológico */}
       <Card className="bg-purple-50 border-purple-300 shadow-sm">
         <CardContent className="p-6">
-          <h3 className="text-xl font-bold text-purple-900 mb-4">Comité Oncológico</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-purple-900">Comité Oncológico</h3>
+            <span className="text-sm text-purple-700 font-medium">
+              {comiteDocs.length} {comiteDocs.length === 1 ? 'documento' : 'documentos'}
+            </span>
+          </div>
           
           <div className="flex gap-3 mb-4">
             <input
@@ -437,7 +448,7 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
               disabled={isLoading}
             >
               <Upload className="w-4 h-4 mr-2" />
-              Subir
+              Subir Archivo
             </Button>
             <Button
               variant="default"
@@ -446,14 +457,15 @@ export function DocumentsPatient({ hideHeader = false }: DocumentsPatientProps =
               disabled={isLoading}
             >
               <Camera className="w-4 h-4 mr-2" />
-              Foto
+              Tomar Foto
             </Button>
           </div>
 
           {comiteDocs.length === 0 ? (
             <div className="text-center py-8">
               <FolderOpen className="w-12 h-12 mx-auto text-purple-400 mb-2" />
-              <p className="text-purple-700 font-medium">Sin archivos aún</p>
+              <p className="text-purple-700 font-medium">Sin documentos del comité aún</p>
+              <p className="text-purple-600 text-sm mt-1">Puedes subir múltiples archivos usando los botones de arriba</p>
             </div>
           ) : (
             <div className="space-y-3">

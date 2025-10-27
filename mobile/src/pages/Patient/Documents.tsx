@@ -245,6 +245,10 @@ const confirmUploadComite = async () => {
       pendingComiteFile
     );
     await loadDocuments();
+    Alert.alert(
+      "✅ Documento subido", 
+      "El documento del Comité Oncológico se subió exitosamente. Puedes subir más archivos."
+    );
   } catch (error) {
     Alert.alert("❌ Error", "No se pudo subir el documento.");
   } finally {
@@ -252,6 +256,8 @@ const confirmUploadComite = async () => {
     setShowComiteTitleModal(false);
     setPendingComiteFile(null);
     setPendingComiteMime("");
+    setPendingComiteTitle("Comité Oncológico");
+    setPendingIsPhoto(false);
   }
 };
 
@@ -441,23 +447,31 @@ const confirmUploadComite = async () => {
 
      {/* 🟣 Sección fija: Comité Oncológico */}
     <View style={styles.comiteBox}>
-      <Text style={styles.comiteTitle}>Comité Oncológico</Text>
+      <View style={styles.comiteHeader}>
+        <Text style={styles.comiteTitle}>Comité Oncológico</Text>
+        <Text style={styles.comiteCount}>
+          {comiteDocs.length} {comiteDocs.length === 1 ? 'documento' : 'documentos'}
+        </Text>
+      </View>
 
       <View style={styles.comiteButtonsRow}>
         <TouchableOpacity style={styles.comiteAddBtn} onPress={handleAddComiteFile}>
           <Upload color="#fff" size={18} />
-          <Text style={styles.comiteAddText}>Subir</Text>
+          <Text style={styles.comiteAddText}>Subir Archivo</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.comiteAddBtn} onPress={handleAddComitePhoto}>
           <Camera color="#fff" size={18} />
-          <Text style={styles.comiteAddText}>Foto</Text>
+          <Text style={styles.comiteAddText}>Tomar Foto</Text>
         </TouchableOpacity>
       </View>
 
       {comiteDocs.length === 0 ? (
         <View style={styles.emptyComite}>
           <FolderOpen color="#7C3AED" size={36} />
-          <Text style={styles.emptyComiteText}>Sin archivos aún</Text>
+          <Text style={styles.emptyComiteText}>Sin documentos del comité aún</Text>
+          <Text style={styles.emptyComiteSubtext}>
+            Puedes subir múltiples archivos
+          </Text>
         </View>
       ) : (
         comiteDocs.map((doc) => (
@@ -692,12 +706,14 @@ const styles = StyleSheet.create({
   // Comité
   comiteBox: { backgroundColor: "#F5F3FF", borderWidth: 1, borderColor: "#7C3AED", borderRadius: 12, padding: 12, marginTop: 14, marginBottom: 16 },
   comiteHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  comiteTitle: { color: "#5B21B6", fontWeight: "700", fontSize: 18 , marginBottom: 10,},
-  //comiteAddBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#7C3AED", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 },
-  comiteAddText: { color: "#fff", fontWeight: "600", marginLeft: 6 },
-  emptyComite: { alignItems: "center", padding: 12 },
-  emptyComiteText: { color: "#6B21A8", fontWeight: "600", marginTop: 6 },
-
+  comiteTitle: { color: "#5B21B6", fontWeight: "700", fontSize: 18 },
+  comiteCount: { color: "#7C3AED", fontWeight: "600", fontSize: 14 },
+  comiteButtonsRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  comiteAddBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#7C3AED", paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8 },
+  comiteAddText: { color: "#fff", fontWeight: "600", marginLeft: 6, fontSize: 14 },
+  emptyComite: { alignItems: "center", padding: 20 },
+  emptyComiteText: { color: "#6B21A8", fontWeight: "600", marginTop: 6, fontSize: 15 },
+  emptyComiteSubtext: { color: "#7C3AED", fontSize: 13, marginTop: 4 },
   comiteDocCard: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 8, padding: 10, marginBottom: 8 },
 
   // Otros documentos
@@ -767,24 +783,5 @@ newDocText: {
   fontWeight: "600",
   marginLeft: 6,
   fontSize: 15,
-},
-comiteHeaderColumn: {
-  marginBottom: 10,
-},
-comiteButtonsRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  marginBottom: 14, // 🟢 espacio entre botones y lista de archivos
-},
-comiteAddBtn: {
-  flex: 1,                      // 🟣 más ancho
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#7C3AED",
-  paddingVertical: 10,
-  borderRadius: 10,
-  marginHorizontal: 4,
-},
-
+  },
 });

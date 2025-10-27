@@ -69,10 +69,12 @@ export function EditableProfile() {
           // Cargar foto de perfil del usuario
           if (user?.id) {
             try {
+              console.log('📸 Cargando foto de perfil para usuario:', user.id);
               const photoData = await apiService.users.getProfilePicture(user.id);
+              console.log('📸 Foto de perfil recibida:', photoData);
               setUserPhoto(photoData);
             } catch (error) {
-              console.log('No profile picture found');
+              console.log('⚠️ No profile picture found:', error);
             }
           }
         } catch (error) {
@@ -241,14 +243,16 @@ export function EditableProfile() {
         type: 'image/webp',
       });
 
+      console.log('📤 Subiendo foto de perfil...');
       const result = await apiService.users.uploadProfilePicture(user.id, optimizedFile);
+      console.log('✅ Resultado del upload:', result);
       setUserPhoto(result);
       alert('✅ Foto de perfil actualizada correctamente');
 
       // Limpiar el estado
       setSelectedImageSrc(null);
     } catch (error) {
-      console.error('Error uploading profile picture:', error);
+      console.error('❌ Error uploading profile picture:', error);
       alert('❌ Error al subir la foto. Intenta nuevamente.');
     } finally {
       setSaving(false);
