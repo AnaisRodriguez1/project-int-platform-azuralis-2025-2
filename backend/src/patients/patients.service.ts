@@ -73,6 +73,7 @@ export class PatientsService {
       .createQueryBuilder('patient')
       .leftJoinAndSelect('patient.careTeam', 'careTeamMember', 'careTeamMember.status = :status', { status: 'active' })
       .leftJoinAndSelect('patient.emergencyContacts', 'emergencyContacts')
+      .leftJoinAndSelect('patient.operations', 'operations')
       .where('patient.id = :id', { id })
       .getOne();
       
@@ -110,7 +111,7 @@ export class PatientsService {
       currentMedications: this.parseJsonString(patient.currentMedications),
       careTeam: patient.careTeam || [], // Asegurar que careTeam siempre sea un array
       emergencyContacts: patient.emergencyContacts || [], // Asegurar array
-      operations: [], 
+      operations: patient.operations || [],
     };
   }
 
@@ -123,56 +124,61 @@ export class PatientsService {
     }
   }
 
+ 
   async update(id: string, data: Partial<Patient>) {
-    console.log('🔍 UPDATE - Received data:', JSON.stringify(data, null, 2));
-    console.log('🔍 UPDATE - Patient ID:', id);
-    
-    try {
-      // Convertir arrays a JSON strings - SOLO los que vienen en data
-      const processedData = { ...data };
-      
-      if ('allergies' in processedData && Array.isArray(processedData.allergies)) {
-        processedData.allergies = processedData.allergies.length > 0 
-          ? JSON.stringify(processedData.allergies) as any
-          : '[]' as any;
-        console.log('🔄 Converted allergies to:', processedData.allergies);
-      }
-      
-      if ('currentMedications' in processedData && Array.isArray(processedData.currentMedications)) {
-        processedData.currentMedications = processedData.currentMedications.length > 0
-          ? JSON.stringify(processedData.currentMedications) as any
-          : '[]' as any;
-        console.log('🔄 Converted currentMedications to:', processedData.currentMedications);
-      }
-      
-      // Filtrar campos que no deben actualizarse directamente
-      const fieldsToUpdate = Object.keys(processedData).filter(
-        key => key !== 'id' && key !== 'emergencyContacts' && key !== 'operations' && key !== 'careTeam'
-      );
-      
-      if (fieldsToUpdate.length > 0) {
-        // Usar TypeORM QueryBuilder para PostgreSQL
-        const updateQuery = this.patientRepo
-          .createQueryBuilder()
-          .update(Patient)
-          .set(processedData)
-          .where('id = :id', { id });
-        
-        console.log('🔧 Executing update with TypeORM QueryBuilder');
-        await updateQuery.execute();
-        console.log('✅ Update successful');
-      }
-      
-      // Cargar el paciente actualizado para retornarlo
-      const result = await this.findOne(id);
-      console.log('✅ Patient reloaded');
-      
-      return result;
-    } catch (error) {
-      console.error('❌ Error in update:', error);
-      throw error;
+  console.log('🔍 UPDATE - Received data:', JSON.stringify(data, null, 2));
+  console.log('🔍 UPDATE - Patient ID:', id);
+
+  try {
+    // Convertir arrays a JSON strings - SOLO los que vienen en data
+    const processedData = { ...data };
+
+    if ('allergies' in processedData && Array.isArray(processedData.allergies)) {
+      processedData.allergies =
+        processedData.allergies.length > 0
+          ? JSON.stringify(processedData.allergies)
+          : '[]';
+      console.log('🔄 Converted allergies to:', processedData.allergies);
     }
+
+    if (
+      'currentMedications' in processedData &&
+      Array.isArray(processedData.currentMedications)
+    ) {
+      processedData.currentMedications =
+        processedData.currentMedications.length > 0
+          ? JSON.stringify(processedData.currentMedications)
+          : '[]';
+      console.log(
+        '🔄 Converted currentMedications to:',
+        processedData.currentMedications,
+      );
+    }
+
+    // 🔸 En lugar de QueryBuilder.update(), cargamos el paciente y usamos save()
+    const patient = await this.patientRepo.findOne({
+      where: { id },
+      relations: ['emergencyContacts', 'operations'],
+    });
+    if (!patient) throw new NotFoundException('Patient not found');
+
+    // 🔸 Asignar los nuevos valores al paciente
+    Object.assign(patient, processedData);
+
+    // 🔸 Guardar el paciente completo (TypeORM activará cascade y actualizará relaciones)
+    await this.patientRepo.save(patient);
+    console.log('✅ Update successful (saved with relations)');
+
+    // 🔸 Recargar el paciente actualizado
+    const result = await this.findOne(id);
+    console.log('✅ Patient reloaded');
+    return result;
+  } catch (error) {
+    console.error('❌ Error in update:', error);
+    throw error;
   }
+}
+
 
   async remove(id: string) {
     const patient = await this.findOne(id);

@@ -52,6 +52,15 @@ export function CompleteProfileForm({ onComplete }: { onComplete: () => void }) 
         allergies: allergiesArray,
         currentMedications: medicationsArray,
         treatmentSummary: formData.treatmentSummary,
+        emergencyContacts: formData.emergencyContactName
+        ? [
+            {
+              name: formData.emergencyContactName,
+              relationship: formData.emergencyContactRelationship,
+              phone: formData.emergencyContactPhone,
+            },
+          ]
+        : [],
       };
 
       await apiService.patients.create(patientData);

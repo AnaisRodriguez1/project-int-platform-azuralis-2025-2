@@ -80,7 +80,7 @@ export const apiService = {
   // ============ USERS ============
   users: {
     update: async (userId: string, userData: Partial<User>): Promise<User> => {
-      const response = await api.put(`/users/${userId}`, userData);
+      const response = await api.patch(`/users/${userId}`, userData);
       return response.data as User;
     },
 
