@@ -104,24 +104,13 @@ export class PatientsService {
   }
 
   private parsePatientData(patient: Patient): any {
-    // Construir la URL correcta del QR code
-    const frontendUrl = process.env.FRONTEND_URL || 'https://lacito.cl';
-    let qrCodeValue = 'PATIENT:' + patient.id;
-    
-    if (patient.qrCode) {
-      qrCodeValue = patient.qrCode.startsWith('PATIENT:') 
-        ? patient.qrCode 
-        : patient.qrCode.split('/emergency/')[1] || patient.qrCode;
-    }
-    
     return {
       ...patient,
       allergies: this.parseJsonString(patient.allergies),
       currentMedications: this.parseJsonString(patient.currentMedications),
       careTeam: patient.careTeam || [], // Asegurar que careTeam siempre sea un array
       emergencyContacts: patient.emergencyContacts || [], // Asegurar array
-      operations: [],
-      qrCode: `${frontendUrl}/emergency/${qrCodeValue}`, // Construir URL completa
+      operations: [], 
     };
   }
 
