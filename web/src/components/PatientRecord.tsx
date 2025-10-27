@@ -36,7 +36,7 @@ import { CancerRibbon } from "./CancerRibbon";
 import { ManageCareTeam } from "./ManageCareTeam";
 import { useAuth } from "@/context/AuthContext";
 import { apiService } from "@/services/api";
-import LogoUniversidad from "../assets/icons/logo_ucn.svg?react";
+import LogoUniversidad from "../assets/logo_ucn.svg?react";
 import { calculateAge } from "@/common/helpers/CalculateAge";
 
 interface PatientRecordProps {
@@ -48,6 +48,24 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
   const cancerColor = cancerColors[patient.cancerType];
   const { user } = useAuth();
   const isStaff = user?.role === 'doctor' || user?.role === 'nurse';
+  
+  // Helper function to parse JSON strings to arrays
+  const parseJsonArray = (value: any): string[] => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  // Parse allergies and medications
+  const allergies = parseJsonArray(patient.allergies);
+  const medications = parseJsonArray(patient.currentMedications);
   
   const [notes, setNotes] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -210,11 +228,11 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Critical Information Alert */}
-        {patient.allergies.length > 0 && (
+        {allergies.length > 0 && (
           <Alert className="border-red-200 bg-red-50">
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              <strong>⚠️ ALERGIAS:</strong> {patient.allergies.join(", ")}
+              <strong>⚠️ ALERGIAS:</strong> {allergies.join(", ")}
             </AlertDescription>
           </Alert>
         )}
@@ -255,9 +273,9 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {patient.currentMedications.length > 0 ? (
+                  {medications.length > 0 ? (
                     <ul className="space-y-2">
-                      {patient.currentMedications.map((med, index) => (
+                      {medications.map((med, index) => (
                         <li
                           key={index}
                           className="text-sm bg-gray-50 p-3 rounded-lg flex items-start"
@@ -288,36 +306,40 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {patient.emergencyContacts.map((contact, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium text-sm">{contact.name}</p>
-                          <p className="text-xs text-gray-600">
-                            {contact.relationship}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {contact.phone}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => callEmergencyContact(contact.phone)}
-                          className="bg-green-600 hover:bg-green-700"
+                    {patient.emergencyContacts && patient.emergencyContacts.length > 0 ? (
+                      patient.emergencyContacts.map((contact, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                         >
-                          <Phone className="w-4 h-4 mr-1" />
-                          Llamar
-                        </Button>
-                      </div>
-                    ))}
+                          <div>
+                            <p className="font-medium text-sm">{contact.name}</p>
+                            <p className="text-xs text-gray-600">
+                              {contact.relationship}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {contact.phone}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => callEmergencyContact(contact.phone)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Phone className="w-4 h-4 mr-1" />
+                            Llamar
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500">No hay contactos de emergencia registrados</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Medical History */}
-              {patient.operations.length > 0 && (
+              {patient.operations && patient.operations.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
@@ -530,30 +552,34 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 mb-6">
-                  {patient.careTeam.map((member, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
-                    >
+                  {patient.careTeam && patient.careTeam.length > 0 ? (
+                    patient.careTeam.map((member, index) => (
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                        style={{ backgroundColor: cancerColor.color }}
+                        key={index}
+                        className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
                       >
-                        {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{member.name}</p>
-                        <p className="text-xs text-gray-600">
-                          {getRoleName(member.role)}
-                        </p>
-                      </div>
-                      <Badge
-                        variant={member.status === "active" ? "default" : "secondary"}
-                      >
-                        {member.status === "active" ? "Activo" : "Inactivo"}
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                          style={{ backgroundColor: cancerColor.color }}
+                        >
+                          {member.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{member.name}</p>
+                          <p className="text-xs text-gray-600">
+                            {getRoleName(member.role)}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={member.status === "active" ? "default" : "secondary"}
+                        >
+                          {member.status === "active" ? "Activo" : "Inactivo"}
                       </Badge>
                     </div>
-                  ))}
+                  ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No hay equipo de cuidados asignado</p>
+                  )}
                 </div>
 
                 {/* Manage Care Team - Solo visible para doctor/nurse */}

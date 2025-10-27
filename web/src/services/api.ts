@@ -272,4 +272,12 @@ export const apiService = {
       await api.delete(`/care-team/${id}`)
     },
   },
+
+  // ==================== EMERGENCY ACCESS ====================
+  emergencyAccess: {
+    registerAccess: async (qrCode: string, rut: string): Promise<Patient> => {
+      const { data } = await api.post(`/emergency-access/${qrCode}`, { rut })
+      return data
+    },
+  },
 }

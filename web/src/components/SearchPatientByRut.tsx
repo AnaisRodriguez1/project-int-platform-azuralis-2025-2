@@ -49,7 +49,8 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
               return { ...record, patientName: name, patientPhoto: null };
             } catch (error) {
               console.error(`Error cargando nombre para paciente ${record.patientId}:`, error);
-              return { ...record, patientName: 'Nombre no disponible', patientPhoto: null };
+              // Si no se puede cargar el nombre, usar el RUT como fallback
+              return { ...record, patientName: `Paciente (${record.patientRut})`, patientPhoto: null };
             }
           })
         ).then((historyWithNames) => {
@@ -66,6 +67,7 @@ export function SearchPatientByRut({ onPatientFound, onBack }: SearchPatientByRu
     setError('');
     
     try {
+      // Buscar por RUT en lugar de por ID, ya que el RUT es más confiable
       const patient = await apiService.patients.findByRut(historyItem.patientRut);
       onPatientFound(patient);
     } catch (err: any) {
