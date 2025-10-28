@@ -36,7 +36,7 @@ export function DashboardClinicalStaff() {
   const isDoctor = user?.role === "doctor";
   const isNurse = user?.role === "nurse";
   const accentColor = isDoctor ? "#001663" : "#00B4D8";
-  const roleLabel = isDoctor ? "Doctor" : "Enfermera";
+  const roleLabel = isDoctor ? "Médico/a" : "Enfermera";
 
   // Load user profile picture
   useEffect(() => {
@@ -212,7 +212,7 @@ export function DashboardClinicalStaff() {
                           </svg>
                         </div>
                         <h2 className="text-3xl font-bold">
-                          ¡Bienvenido de vuelta, doctor!
+                          ¡Bienvenido de vuelta!
                         </h2>
                       </div>
                       <p className="text-white/90 text-lg ml-15">

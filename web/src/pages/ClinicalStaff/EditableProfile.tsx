@@ -230,7 +230,7 @@ export function EditableClinicalProfile() {
                 <div>
                   <Label className="text-sm text-gray-600">Rol</Label>
                   <p className="font-medium text-gray-900 capitalize">
-                    {isDoctor ? 'Doctor' : 'Enfermera'}
+                    {isDoctor ? 'Médico/Médica' : 'Enfermera'}
                   </p>
                 </div>
               </div>
