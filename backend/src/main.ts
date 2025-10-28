@@ -12,7 +12,16 @@ async function bootstrap() {
     'http://localhost:3000',
     'https://frontend-azuralis-project-int-platform.onrender.com',
     'https://www.lacito.cl',
-    'https://lacito.cl'
+    'https://lacito.cl',
+    'http://192.168.1.86:19000',
+    'http://192.168.1.86:8081',
+    'exp://192.168.1.86:8081',
+    'exp://192.168.1.86:19000',
+
+
+
+
+
   ];
 
   // Si hay FRONTEND_URL_PROD en .env, agregarlo también
