@@ -146,8 +146,19 @@ export function PatientRecord({ patient, onBack }: PatientRecordProps) {
       oncologo_principal: "Oncólogo Principal",
       enfermera_jefe: "Enfermera Jefe",
       cirujano: "Cirujano",
+      radiologo: "Radiólogo",
+      consultor: "Consultor",
     };
-    return roleNames[role] || role;
+    // Si el rol existe en el diccionario, devolverlo formateado
+    // Si no existe, capitalizar la primera letra y reemplazar guiones bajos con espacios
+    if (roleNames[role]) {
+      return roleNames[role];
+    }
+    // Formatear rol personalizado: "mi_rol_custom" → "Mi Rol Custom"
+    return role
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   // Función para abrir/descargar el documento con URL firmada
